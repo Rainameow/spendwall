@@ -1,5 +1,12 @@
 
 require('dotenv').config();
+const natural = require('natural');
+let darkPatternClassifier = null;
+natural.BayesClassifier.load(__dirname + '/ml/dark-pattern-model.json', null, (err, classifier) => {
+  if (err) return console.error('Could not load classifier:', err);
+  darkPatternClassifier = classifier;
+  console.log('Dark pattern classifier loaded');
+});
 const express = require("express");
 const cors = require("cors");
 const Groq = require("groq-sdk");
@@ -77,6 +84,17 @@ You help explain purchases. Spendwall's deterministic rule engine ultimately dec
       error: "Spendwall AI failed to respond.",
     });
   }
+});
+
+app.post('/api/classify', (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'text is required' });
+  if (!darkPatternClassifier) return res.status(503).json({ error: 'still loading, try again' });
+
+  res.json({
+    label: darkPatternClassifier.classify(text),
+    classifications: darkPatternClassifier.getClassifications(text)
+  });
 });
 
 app.listen(PORT, () => {

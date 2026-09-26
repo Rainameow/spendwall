@@ -1,10 +1,7 @@
 console.log("Spendwall protection active");
 
-function analyzeCheckout() {
-  const pageText = document.body.innerText.toLowerCase();
-
+function keywordFallback(pageText) {
   const problems = [];
-
   if (
     pageText.includes("subscription") ||
     pageText.includes("monthly") ||
@@ -12,13 +9,36 @@ function analyzeCheckout() {
   ) {
     problems.push("Recurring subscription detected");
   }
-
   if (
     pageText.includes("final sale") ||
     pageText.includes("non-refundable")
   ) {
     problems.push("Purchase may be non-refundable");
   }
+  return problems;
+}
+
+async function analyzeCheckout() {
+  const pageText = document.body.innerText.toLowerCase();
+  const problems = [];
+
+  try {
+    const response = await fetch("http://localhost:8000/api/classify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: pageText.slice(0, 2000) })
+    });
+    const data = await response.json();
+
+    if (data.label === "dark_pattern") {
+      problems.push("Spendwall ML classifier flagged manipulative checkout language");
+    }
+  } catch (err) {
+    console.warn("Spendwall: classifier unreachable, using fallback rules only", err);
+  }
+
+  // Fast keyword rules always run too, as a safety net
+  problems.push(...keywordFallback(pageText));
 
   return problems;
 }
@@ -29,24 +49,18 @@ function showSpendwallWarning(problems) {
   }
 
   const overlay = document.createElement("div");
-
   overlay.id = "spendwall-warning";
 
   overlay.innerHTML = `
     <div class="spendwall-modal">
-
       <div class="spendwall-logo">S</div>
-
       <div class="spendwall-badge">
         PURCHASE BLOCKED
       </div>
-
       <h1>Spendwall stopped this purchase.</h1>
-
       <p>
         This checkout conflicts with your spending rules.
       </p>
-
       <div class="spendwall-problems">
         ${problems
           .map(
@@ -59,11 +73,9 @@ function showSpendwallWarning(problems) {
           )
           .join("")}
       </div>
-
       <button id="spendwall-close">
         Go back
       </button>
-
     </div>
   `;
 
@@ -78,12 +90,13 @@ function showSpendwallWarning(problems) {
 
 document.addEventListener(
   "click",
-  function (event) {
+  async function (event) {
     const button = event.target.closest(
       "button, input[type='submit']"
     );
 
     if (!button) return;
+    if (button.dataset.spendwallCleared === "true") return; // already checked, let it through
 
     const text =
       button.innerText?.toLowerCase() ||
@@ -104,13 +117,18 @@ document.addEventListener(
 
     if (!isPaymentButton) return;
 
-    const problems = analyzeCheckout();
+    // Hold the click while we check
+    event.preventDefault();
+    event.stopPropagation();
+
+    const problems = await analyzeCheckout();
 
     if (problems.length > 0) {
-      event.preventDefault();
-      event.stopPropagation();
-
       showSpendwallWarning(problems);
+    } else {
+      // Nothing flagged, let the original click through
+      button.dataset.spendwallCleared = "true";
+      button.click();
     }
   },
   true
