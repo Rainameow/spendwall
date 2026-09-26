@@ -173,32 +173,62 @@ export default function SpendwallApp() {
     showToast('User override recorded. Transaction completed.', 'warning');
   };
 
-  const handleSendChat = (e) => {
+    const handleSendChat = async (e) => {
     e.preventDefault();
+
     if (!chatInput.trim()) return;
 
-    const userMessage = { role: 'user', content: chatInput, timestamp: 'Just now' };
+    const message = chatInput.trim();
+
+    const userMessage = {
+      role: 'user',
+      content: message,
+      timestamp: 'Just now'
+    };
+
     setChatMessages((prev) => [...prev, userMessage]);
-    const query = chatInput.toLowerCase();
     setChatInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      let aiResponse = "I've checked your parameters. All active shopping agents are operating within safe guardrail parameters.";
-      if (query.includes('subscription') || query.includes('recurring')) {
-        aiResponse = "Your 'Block Recurring Subscriptions' rule is ACTIVE. Our Zero-Shot classifier is scanning DOM text with 98.9% precision.";
-      } else if (query.includes('limit') || query.includes('spend')) {
-        aiResponse = "Your hard spending limit is configured to $120.00 per transaction.";
-      } else if (query.includes('status') || query.includes('audit')) {
-        aiResponse = "In the last 24 hours, Spendwall has intercepted 14 suspicious checkouts and saved $342 in hidden charges.";
+    try {
+      const response = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: message
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'AI request failed');
       }
 
       setChatMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: aiResponse, timestamp: 'Just now' }
+        {
+          role: 'assistant',
+          content: data.response,
+          timestamp: 'Just now'
+        }
       ]);
+    } catch (error) {
+      console.error('Spendwall AI error:', error);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'I could not reach the Spendwall AI. Make sure the backend is running.',
+          timestamp: 'Just now'
+        }
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   return (
