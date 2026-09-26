@@ -1,10 +1,13 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import SpendwallDashboard from './SpendwallDashboard.jsx'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import SpendwallDashboard from "./SpendwallDashboard.jsx";
+import CheckoutSimulator from "./CheckoutSimulator.jsx";
+import "./index.css";
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <SpendwallDashboard />
-  </StrictMode>,
-)
+const isCheckout = window.location.pathname === "/checkout";
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    {isCheckout ? <CheckoutSimulator /> : <SpendwallDashboard />}
+  </React.StrictMode>
+);

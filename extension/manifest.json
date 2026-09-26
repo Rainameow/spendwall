@@ -3,14 +3,29 @@
   "name": "Spendwall",
   "version": "1.0.0",
   "description": "Your personal firewall for online purchases.",
-  "permissions": ["storage", "activeTab"],
+
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "https://*/*"
+  ],
+
   "content_scripts": [
     {
-      "matches": ["http://localhost/*", "http://localhost:*/*"],
+      "matches": [
+        "http://localhost/*",
+        "http://localhost:*/*",
+        "https://*/*"
+      ],
       "js": ["content.js"],
       "css": ["content.css"]
     }
   ],
+
   "action": {
     "default_popup": "popup.html",
     "default_title": "Spendwall"
