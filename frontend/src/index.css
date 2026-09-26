@@ -1,5 +1,7 @@
 @import "tailwindcss";
-
+ 
+@custom-variant dark (&:where(.dark, .dark *));
+ 
 html,
 body,
 #root {
@@ -7,7 +9,7 @@ body,
   width: 100%;
   min-height: 100%;
 }
-
+ 
 body {
   min-width: 320px;
   min-height: 100vh;
