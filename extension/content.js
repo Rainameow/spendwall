@@ -15,6 +15,78 @@ let scanInProgress = false;
 let approvedButton = null;
 
 // ============================================
+// DARK PATTERN ML CLASSIFIER
+// ============================================
+
+function keywordFallback(pageText) {
+  const problems = [];
+
+  if (
+    pageText.includes("subscription") ||
+    pageText.includes("monthly") ||
+    pageText.includes("recurring")
+  ) {
+    problems.push("Recurring subscription language detected");
+  }
+
+  if (
+    pageText.includes("final sale") ||
+    pageText.includes("non-refundable")
+  ) {
+    problems.push("Purchase may be non-refundable");
+  }
+
+  return problems;
+}
+
+async function classifyDarkPatterns() {
+  const pageText =
+    document.body.innerText.toLowerCase();
+
+  const problems = [];
+
+  try {
+    const response = await fetch(
+      `${SPENDWALL_API}/api/classify`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: pageText.slice(0, 2000),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Classifier returned ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (data.label === "dark_pattern") {
+      problems.push(
+        "Spendwall ML classifier flagged manipulative checkout language"
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "Spendwall classifier unavailable; using fallback checks",
+      error
+    );
+  }
+
+  problems.push(
+    ...keywordFallback(pageText)
+  );
+
+  return [...new Set(problems)];
+}
+
+// ============================================
 // READ CURRENT WEBSITE
 // ============================================
 
@@ -22,7 +94,8 @@ function getCurrentPageData() {
   return {
     url: window.location.href,
     title: document.title,
-    pageText: document.body.innerText.slice(0, 15000),
+    pageText:
+      document.body.innerText.slice(0, 15000),
   };
 }
 
@@ -31,7 +104,8 @@ function getCurrentPageData() {
 // ============================================
 
 function looksLikeShoppingPage() {
-  const text = document.body.innerText.toLowerCase();
+  const text =
+    document.body.innerText.toLowerCase();
 
   const shoppingWords = [
     "cart",
@@ -157,7 +231,10 @@ function createBadge() {
 // UPDATE BADGE
 // ============================================
 
-function updateBadge(status, type = "normal") {
+function updateBadge(
+  status,
+  type = "normal"
+) {
   const statusElement =
     document.getElementById(
       "spendwall-live-status"
@@ -272,6 +349,52 @@ async function analyzeCheckout(checkout) {
 }
 
 // ============================================
+// COMBINE RULE ENGINE + ML RESULTS
+// ============================================
+
+async function runSpendwallCheck() {
+  const checkout =
+    await extractCheckout();
+
+  const [result, mlProblems] =
+    await Promise.all([
+      analyzeCheckout(checkout),
+      classifyDarkPatterns(),
+    ]);
+
+  if (mlProblems.length > 0) {
+    result.warnings = [
+      ...(result.warnings || []),
+      ...mlProblems,
+    ];
+
+    result.warnings = [
+      ...new Set(result.warnings),
+    ];
+
+    // ML findings add review context.
+    // Deterministic spending-rule violations
+    // remain responsible for hard BLOCKs.
+    if (
+      result.decision === "ALLOW"
+    ) {
+      result.decision = "WARN";
+    }
+
+    result.riskScore = Math.min(
+      (result.riskScore || 0) +
+        mlProblems.length * 10,
+      100
+    );
+  }
+
+  return {
+    checkout,
+    result,
+  };
+}
+
+// ============================================
 // AUTOMATIC BACKGROUND SCAN
 // ============================================
 
@@ -285,18 +408,19 @@ async function scanPage() {
   updateBadge("Scanning purchase...");
 
   try {
+    const check =
+      await runSpendwallCheck();
+
     latestCheckout =
-      await extractCheckout();
+      check.checkout;
+
+    latestResult =
+      check.result;
 
     console.log(
       "Spendwall extracted:",
       latestCheckout
     );
-
-    latestResult =
-      await analyzeCheckout(
-        latestCheckout
-      );
 
     console.log(
       "Spendwall result:",
@@ -456,7 +580,8 @@ function showSpendwallResult(
           : `
             <button id="spendwall-close">
               ${
-                result.decision === "BLOCK"
+                result.decision ===
+                "BLOCK"
                   ? "Go back"
                   : "Close"
               }
@@ -572,22 +697,27 @@ function showVerificationError(
 
   document.body.appendChild(overlay);
 
-  document
-    .getElementById(
+  const closeButton =
+    document.getElementById(
       "spendwall-close"
-    )
-    .addEventListener(
+    );
+
+  if (closeButton) {
+    closeButton.addEventListener(
       "click",
       () => {
         overlay.remove();
       }
     );
+  }
 
-  document
-    .getElementById(
+  const continueButton =
+    document.getElementById(
       "spendwall-continue"
-    )
-    .addEventListener(
+    );
+
+  if (continueButton) {
+    continueButton.addEventListener(
       "click",
       () => {
         overlay.remove();
@@ -595,6 +725,7 @@ function showVerificationError(
         continueCheckout(button);
       }
     );
+  }
 }
 
 // ============================================
@@ -717,20 +848,21 @@ document.addEventListener(
     );
 
     try {
-      // Re-scan because cart contents may
-      // have changed since page load.
+      // Re-scan because the cart may have
+      // changed since page load.
+      const check =
+        await runSpendwallCheck();
+
       latestCheckout =
-        await extractCheckout();
+        check.checkout;
+
+      latestResult =
+        check.result;
 
       console.log(
         "Spendwall checkout:",
         latestCheckout
       );
-
-      latestResult =
-        await analyzeCheckout(
-          latestCheckout
-        );
 
       console.log(
         "Spendwall decision:",
@@ -742,7 +874,8 @@ document.addEventListener(
       // ======================================
 
       if (
-        latestResult.decision === "BLOCK"
+        latestResult.decision ===
+        "BLOCK"
       ) {
         updateBadge(
           "Purchase blocked",
@@ -761,7 +894,8 @@ document.addEventListener(
       // ======================================
 
       if (
-        latestResult.decision === "WARN"
+        latestResult.decision ===
+        "WARN"
       ) {
         updateBadge(
           "Review required",
@@ -788,7 +922,6 @@ document.addEventListener(
       );
 
       continueCheckout(button);
-
     } catch (error) {
       console.error(
         "Spendwall purchase check failed:",
@@ -800,7 +933,6 @@ document.addEventListener(
         "warning"
       );
 
-      // IMPORTANT:
       // Verification failure is NOT a block.
       // User gets the choice to continue.
       showVerificationError(

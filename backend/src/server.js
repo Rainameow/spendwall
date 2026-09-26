@@ -1,9 +1,26 @@
 require("dotenv").config();
 
+const natural = require("natural");
 const express = require("express");
 const cors = require("cors");
 const Groq = require("groq-sdk");
 const { createClient } = require("@supabase/supabase-js");
+
+let darkPatternClassifier = null;
+
+natural.BayesClassifier.load(
+  __dirname + "/ml/dark-pattern-model.json",
+  null,
+  (err, classifier) => {
+    if (err) {
+      console.error("Could not load classifier:", err);
+      return;
+    }
+
+    darkPatternClassifier = classifier;
+    console.log("Dark pattern classifier loaded");
+  }
+);
 
 const app = express();
 const PORT = 8000;
@@ -344,9 +361,6 @@ app.post("/api/analyze-checkout", async (req, res) => {
     // ========================================
     // TEMPORARY RISK SCORE
     // ========================================
-    // This is currently a heuristic.
-    // We can replace it with the trained ML
-    // model after the universal extension works.
 
     let riskScore = 10;
 
@@ -476,6 +490,32 @@ app.post("/api/analyze-checkout", async (req, res) => {
         "Spendwall could not analyze this checkout.",
     });
   }
+});
+
+// ============================================
+// ML DARK-PATTERN CLASSIFIER
+// ============================================
+
+app.post("/api/classify", (req, res) => {
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({
+      error: "text is required",
+    });
+  }
+
+  if (!darkPatternClassifier) {
+    return res.status(503).json({
+      error: "still loading, try again",
+    });
+  }
+
+  res.json({
+    label: darkPatternClassifier.classify(text),
+    classifications:
+      darkPatternClassifier.getClassifications(text),
+  });
 });
 
 // ============================================

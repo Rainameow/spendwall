@@ -27,7 +27,9 @@ import {
   Send,
   Bot,
   User,
-  Cpu
+  Cpu,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const initialRules = [
@@ -102,6 +104,13 @@ const mockSimulations = [
 ];
 
 export default function SpendwallApp() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('spendwall-theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('spendwall-theme', theme);
+  }, [theme]);
+
   const [rules, setRules] = useState(initialRules);
   const [logs, setLogs] = useState(initialLogs);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -232,7 +241,7 @@ export default function SpendwallApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-200">
       
       {notification && (
         <div className="fixed top-6 right-6 z-50 animate-bounce duration-300">
@@ -265,7 +274,7 @@ export default function SpendwallApp() {
               </div>
               <button 
                 onClick={() => setActiveSimulation(null)}
-                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-100 dark:bg-slate-800 transition"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -274,7 +283,7 @@ export default function SpendwallApp() {
             <div className="p-6 space-y-6">
               <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-slate-300">Target Agent: <strong className="text-white">{activeSimulation.agent}</strong></span>
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Target Agent: <strong className="text-white">{activeSimulation.agent}</strong></span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-mono">
                       ML Confidence: {activeSimulation.mlConfidence}
@@ -284,25 +293,25 @@ export default function SpendwallApp() {
                     </span>
                   </div>
                 </div>
-                <p className="text-sm text-slate-300 mb-3">{activeSimulation.description}</p>
-                <div className="text-xs text-slate-400 flex items-center gap-2">
+                <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">{activeSimulation.description}</p>
+                <div className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                  <span>Merchant: <strong className="text-slate-200">{activeSimulation.merchant}</strong></span>
+                  <span>Merchant: <strong className="text-slate-800 dark:text-slate-200">{activeSimulation.merchant}</strong></span>
                   <span>•</span>
-                  <span>Item: <strong className="text-slate-200">{activeSimulation.item}</strong></span>
+                  <span>Item: <strong className="text-slate-800 dark:text-slate-200">{activeSimulation.item}</strong></span>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-cyan-400" /> Checkout Diff-Checker (Intent vs. Execution)
                 </h4>
-                <div className="space-y-2 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                <div className="space-y-2 bg-white/60 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                   {activeSimulation.diffs.map((diff, idx) => (
-                    <div key={idx} className={`flex items-center justify-between text-sm p-2 rounded-lg ${diff.changed ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-slate-900/50'}`}>
-                      <span className="font-medium text-slate-300">{diff.label}</span>
+                    <div key={idx} className={`flex items-center justify-between text-sm p-2 rounded-lg ${diff.changed ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-white/50 dark:bg-slate-900/50'}`}>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{diff.label}</span>
                       <div className="flex items-center space-x-3 font-mono text-xs">
-                        <span className="text-slate-400 line-through">{diff.original}</span>
+                        <span className="text-slate-600 dark:text-slate-400 line-through">{diff.original}</span>
                         <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
                         <span className={diff.changed ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
                           {diff.final}
@@ -323,14 +332,14 @@ export default function SpendwallApp() {
                 </button>
                 <button
                   onClick={() => handleOverrideTransaction(activeSimulation)}
-                  className="w-full sm:flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold rounded-xl transition flex items-center justify-center space-x-2"
+                  className="w-full sm:flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold rounded-xl transition flex items-center justify-center space-x-2"
                 >
                   <ShieldCheck className="w-4 h-4 text-amber-400" />
                   <span>Override & Proceed</span>
                 </button>
                 <button
                   onClick={() => { setActiveSimulation(null); setActiveTab('dashboard'); showToast('Adjust rules in firewall engine.', 'info'); }}
-                  className="w-full sm:w-auto py-3 px-4 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-semibold rounded-xl transition flex items-center justify-center space-x-2"
+                  className="w-full sm:w-auto py-3 px-4 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-semibold rounded-xl transition flex items-center justify-center space-x-2"
                 >
                   <Sliders className="w-4 h-4" />
                   <span>Modify Guardrails</span>
@@ -342,14 +351,14 @@ export default function SpendwallApp() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <Shield className="w-6 h-6 text-slate-950 fill-slate-950" />
             </div>
             <div>
-              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
                 Spendwall
               </span>
               <span className="ml-2 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -358,24 +367,24 @@ export default function SpendwallApp() {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <nav className="hidden md:flex items-center space-x-1 bg-white/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'dashboard' ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md' : 'text-slate-400 hover:text-white'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'dashboard' ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
               <Sliders className="w-4 h-4" />
               <span>Control Center</span>
             </button>
             <button
               onClick={() => setActiveTab('logs')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'logs' ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md' : 'text-slate-400 hover:text-white'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'logs' ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
               <Activity className="w-4 h-4" />
               <span>Audit Trail ({logs.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('simulator')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'simulator' ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md' : 'text-slate-400 hover:text-white'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'simulator' ? 'bg-emerald-500 text-slate-950 font-semibold shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
             >
               <Zap className="w-4 h-4" />
               <span>Checkout Simulator</span>
@@ -383,6 +392,13 @@ export default function SpendwallApp() {
           </nav>
 
           <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label="Toggle light and dark mode"
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button
               onClick={() => setIsChatOpen(true)}
               className="px-3.5 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-semibold transition flex items-center space-x-2 shadow-lg shadow-indigo-600/10"
@@ -397,10 +413,10 @@ export default function SpendwallApp() {
         </div>
       </header>
 
-      <div className="md:hidden flex items-center justify-around bg-slate-900 border-b border-slate-800 p-2">
-        <button onClick={() => setActiveTab('dashboard')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'dashboard' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400'}`}>Control Center</button>
-        <button onClick={() => setActiveTab('logs')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'logs' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400'}`}>Audit Trail</button>
-        <button onClick={() => setActiveTab('simulator')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'simulator' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400'}`}>Simulator</button>
+      <div className="md:hidden flex items-center justify-around bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2">
+        <button onClick={() => setActiveTab('dashboard')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'dashboard' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-600 dark:text-slate-400'}`}>Control Center</button>
+        <button onClick={() => setActiveTab('logs')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'logs' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-600 dark:text-slate-400'}`}>Audit Trail</button>
+        <button onClick={() => setActiveTab('simulator')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'simulator' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-600 dark:text-slate-400'}`}>Simulator</button>
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -409,11 +425,11 @@ export default function SpendwallApp() {
           <div className="space-y-8 animate-fade-in">
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              <div className="bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-400">
                   <ShieldCheck className="w-16 h-16" />
                 </div>
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">ML Classification Engine</span>
+                <span className="text-xs font-mono text-slate-600 dark:text-slate-400 uppercase tracking-wider">ML Classification Engine</span>
                 <div className="mt-2 flex items-baseline space-x-2">
                   <span className="text-2xl font-bold text-white">Active (99.2%)</span>
                 </div>
@@ -422,11 +438,11 @@ export default function SpendwallApp() {
                 </p>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              <div className="bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 text-cyan-400">
                   <ShieldAlert className="w-16 h-16" />
                 </div>
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Traps Blocked (24h)</span>
+                <span className="text-xs font-mono text-slate-600 dark:text-slate-400 uppercase tracking-wider">Traps Blocked (24h)</span>
                 <div className="mt-2 flex items-baseline space-x-2">
                   <span className="text-2xl font-bold text-white">14 Intercepts</span>
                 </div>
@@ -435,23 +451,23 @@ export default function SpendwallApp() {
                 </p>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              <div className="bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 text-amber-400">
                   <DollarSign className="w-16 h-16" />
                 </div>
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Hard Spending Limit</span>
+                <span className="text-xs font-mono text-slate-600 dark:text-slate-400 uppercase tracking-wider">Hard Spending Limit</span>
                 <div className="mt-2 flex items-baseline space-x-2">
                   <span className="text-2xl font-bold text-white">$120.00</span>
-                  <span className="text-xs text-slate-400 font-mono">per order</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">per order</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">Configured in guardrails</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Configured in guardrails</p>
               </div>
 
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              <div className="bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 text-purple-400">
                   <Terminal className="w-16 h-16" />
                 </div>
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Connected Agents</span>
+                <span className="text-xs font-mono text-slate-600 dark:text-slate-400 uppercase tracking-wider">Connected Agents</span>
                 <div className="mt-2 flex items-baseline space-x-2">
                   <span className="text-2xl font-bold text-white">3 Agents</span>
                 </div>
@@ -459,12 +475,12 @@ export default function SpendwallApp() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-2xl border border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Sliders className="w-5 h-5 text-emerald-400" /> Personal Financial Firewall Rules & ML Confidence
                 </h2>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                   Define your exact purchasing boundaries. Spendwall evaluates every agent checkout against these rules using real-time ML classification before funds are authorized.
                 </p>
               </div>
@@ -483,29 +499,29 @@ export default function SpendwallApp() {
                   key={rule.id}
                   className={`p-6 rounded-2xl border transition duration-200 ${
                     rule.enabled 
-                      ? 'bg-slate-900/80 border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.05)]' 
-                      : 'bg-slate-950/40 border-slate-800 opacity-60'
+                      ? 'bg-white/80 dark:bg-slate-900/80 border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.05)]' 
+                      : 'bg-white/40 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 opacity-60'
                   }`}
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1.5 flex-1">
                       <div className="flex items-center space-x-3">
-                        <span className={`h-2.5 w-2.5 rounded-full ${rule.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`}></span>
+                        <span className={`h-2.5 w-2.5 rounded-full ${rule.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-300 dark:bg-slate-600'}`}></span>
                         <h3 className="text-base font-bold text-white">{rule.name}</h3>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${rule.enabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${rule.enabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'}`}>
                           {rule.enabled ? 'ACTIVE' : 'DISABLED'}
                         </span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                           ML Precision: {rule.mlConfidenceWeight}%
                         </span>
                       </div>
-                      <p className="text-sm text-slate-400 pl-5">{rule.description}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 pl-5">{rule.description}</p>
                     </div>
 
                     <div className="flex items-center space-x-4 pl-5 md:pl-0">
                       {rule.type === 'limit' && rule.enabled && (
-                        <div className="flex items-center space-x-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-                          <span className="text-xs text-slate-400 font-mono">$</span>
+                        <div className="flex items-center space-x-2 bg-white dark:bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">$</span>
                           <input 
                             type="number" 
                             value={rule.value} 
@@ -518,7 +534,7 @@ export default function SpendwallApp() {
                       <button
                         onClick={() => handleToggleRule(rule.id)}
                         className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          rule.enabled ? 'bg-emerald-500' : 'bg-slate-800'
+                          rule.enabled ? 'bg-emerald-500' : 'bg-slate-100 dark:bg-slate-800'
                         }`}
                       >
                         <span
@@ -538,29 +554,29 @@ export default function SpendwallApp() {
 
         {activeTab === 'logs' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-2xl border border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Activity className="w-5 h-5 text-emerald-400" /> Transparent Agent Transaction Audit Trail
                 </h2>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                   Verifiable record of every decision made by your AI shopping agents and evaluated by Spendwall's ML engine.
                 </p>
               </div>
               <button 
                 onClick={() => { setLogs(initialLogs); showToast('Audit trail refreshed', 'success'); }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl border border-slate-700 transition flex items-center justify-center space-x-2"
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold rounded-xl border border-slate-300 dark:border-slate-700 transition flex items-center justify-center space-x-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Refresh Trail</span>
               </button>
             </div>
 
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 text-xs font-mono text-slate-400 uppercase bg-slate-950/40">
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-600 dark:text-slate-400 uppercase bg-white/40 dark:bg-slate-950/40">
                       <th className="p-4">Status</th>
                       <th className="p-4">Agent & Merchant</th>
                       <th className="p-4">Item & Amount</th>
@@ -568,9 +584,9 @@ export default function SpendwallApp() {
                       <th className="p-4 text-right">Timestamp</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800 text-sm">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
                     {logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-800/40 transition">
+                      <tr key={log.id} className="hover:bg-slate-100/40 dark:bg-slate-800/40 transition">
                         <td className="p-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-semibold ${
                             log.status === 'Blocked' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' :
@@ -585,16 +601,16 @@ export default function SpendwallApp() {
                         </td>
                         <td className="p-4">
                           <div className="font-bold text-white">{log.agent}</div>
-                          <div className="text-xs text-slate-400">{log.merchant}</div>
+                          <div className="text-xs text-slate-600 dark:text-slate-400">{log.merchant}</div>
                         </td>
                         <td className="p-4">
-                          <div className="text-slate-200 font-medium">{log.item}</div>
+                          <div className="text-slate-800 dark:text-slate-200 font-medium">{log.item}</div>
                           <div className="text-xs font-mono text-emerald-400">{log.amount}</div>
                         </td>
-                        <td className="p-4 text-slate-300 text-xs max-w-xs truncate">
+                        <td className="p-4 text-slate-700 dark:text-slate-300 text-xs max-w-xs truncate">
                           {log.reason}
                         </td>
-                        <td className="p-4 text-right text-xs font-mono text-slate-400">
+                        <td className="p-4 text-right text-xs font-mono text-slate-600 dark:text-slate-400">
                           {log.timestamp}
                         </td>
                       </tr>
@@ -608,18 +624,18 @@ export default function SpendwallApp() {
 
         {activeTab === 'simulator' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-800">
+            <div className="bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-400" /> Interactive Agent Checkout Simulator
               </h2>
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                 Test how Spendwall intercepts rogue AI shopping attempts in real time using transformer classification. Choose a scenario below to trigger the Interceptor Overlay.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {mockSimulations.map((sim) => (
-                <div key={sim.id} className="bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 flex flex-col justify-between transition group shadow-lg">
+                <div key={sim.id} className="bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 flex flex-col justify-between transition group shadow-lg">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">
@@ -628,10 +644,10 @@ export default function SpendwallApp() {
                       <span className="text-xs text-cyan-400 font-mono">{sim.mlConfidence} ML</span>
                     </div>
                     <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition">{sim.title}</h3>
-                    <p className="text-sm text-slate-300">{sim.description}</p>
-                    <div className="pt-2 text-xs text-slate-400 space-y-1 bg-slate-950 p-3 rounded-xl border border-slate-800/80 font-mono">
-                      <div>Merchant: <strong className="text-slate-200">{sim.merchant}</strong></div>
-                      <div>Intended: <span className="text-slate-300">{sim.intendedPrice}</span></div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">{sim.description}</p>
+                    <div className="pt-2 text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800/80 font-mono">
+                      <div>Merchant: <strong className="text-slate-800 dark:text-slate-200">{sim.merchant}</strong></div>
+                      <div>Intended: <span className="text-slate-700 dark:text-slate-300">{sim.intendedPrice}</span></div>
                       <div>Checkout: <span className="text-rose-400 font-bold">{sim.checkoutPrice}</span></div>
                     </div>
                   </div>
@@ -652,11 +668,11 @@ export default function SpendwallApp() {
             <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-slate-900 to-cyan-950/30 border border-emerald-500/30 flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-white">Want to trigger an instant browser extension interception?</h3>
-                <p className="text-xs text-slate-400">Simulate a high-risk dark pattern checkout scenario instantly.</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Simulate a high-risk dark pattern checkout scenario instantly.</p>
               </div>
               <button
                 onClick={() => setActiveSimulation(mockSimulations[0])}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl transition flex items-center space-x-2 shrink-0"
+                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 text-emerald-400 border border-emerald-500/30 font-bold rounded-xl transition flex items-center space-x-2 shrink-0"
               >
                 <Terminal className="w-4 h-4" />
                 <span>Trigger Instant Intercept</span>
@@ -669,9 +685,9 @@ export default function SpendwallApp() {
 
       {isChatOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/70 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col h-full font-sans">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full font-sans">
             
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-950">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-indigo-400">
                   <Sparkles className="w-5 h-5" />
@@ -686,7 +702,7 @@ export default function SpendwallApp() {
               </div>
               <button
                 onClick={() => setIsChatOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+                className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:bg-slate-800 transition"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -704,7 +720,7 @@ export default function SpendwallApp() {
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                       msg.role === 'user'
                         ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-800 border border-slate-700 text-indigo-400'
+                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-indigo-400'
                     }`}
                   >
                     {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -713,13 +729,13 @@ export default function SpendwallApp() {
                     className={`max-w-[75%] rounded-2xl p-3.5 text-sm ${
                       msg.role === 'user'
                         ? 'bg-indigo-600 text-white rounded-tr-none'
-                        : 'bg-slate-800/80 border border-slate-700/60 text-slate-200 rounded-tl-none'
+                        : 'bg-slate-100/80 dark:bg-slate-800/80 border border-slate-300/60 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 rounded-tl-none'
                     }`}
                   >
                     <p className="leading-relaxed">{msg.content}</p>
                     <span
                       className={`text-[10px] block mt-1.5 ${
-                        msg.role === 'user' ? 'text-indigo-200 text-right' : 'text-slate-400'
+                        msg.role === 'user' ? 'text-indigo-200 text-right' : 'text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       {msg.timestamp}
@@ -730,10 +746,10 @@ export default function SpendwallApp() {
 
               {isTyping && (
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 text-indigo-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-indigo-400 flex items-center justify-center">
                     <Bot className="w-4 h-4" />
                   </div>
-                  <div className="bg-slate-800/80 border border-slate-700/60 rounded-2xl rounded-tl-none p-3.5 text-slate-400 text-sm flex items-center gap-1.5">
+                  <div className="bg-slate-100/80 dark:bg-slate-800/80 border border-slate-300/60 dark:border-slate-700/60 rounded-2xl rounded-tl-none p-3.5 text-slate-600 dark:text-slate-400 text-sm flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce"></span>
                     <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]"></span>
                     <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -743,28 +759,28 @@ export default function SpendwallApp() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="px-4 py-2 bg-slate-950/40 border-t border-slate-800/50 flex gap-2 overflow-x-auto no-scrollbar">
+            <div className="px-4 py-2 bg-white/40 dark:bg-slate-950/40 border-t border-slate-200/50 dark:border-slate-800/50 flex gap-2 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setChatInput('What are my active safety rules?')}
-                className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-700 transition"
+                className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-300 dark:border-slate-700 transition"
               >
                 🛡️ Check active rules
               </button>
               <button
                 onClick={() => setChatInput('Show recent blocks')}
-                className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-700 transition"
+                className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-300 dark:border-slate-700 transition"
               >
                 📊 Recent blocks summary
               </button>
             </div>
 
-            <form onSubmit={handleSendChat} className="p-4 border-t border-slate-800 bg-slate-950 flex gap-2">
+            <form onSubmit={handleSendChat} className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex gap-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Ask Copilot or query ML logs..."
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
               />
               <button
                 type="submit"
@@ -778,7 +794,7 @@ export default function SpendwallApp() {
         </div>
       )}
 
-      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t border-slate-800 text-center text-xs text-slate-500 font-mono">
+      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 font-mono">
         Spendwall • The AI-Powered Safety & Audit Layer for Agentic Commerce • Hackathon Edition 2026
       </footer>
 
