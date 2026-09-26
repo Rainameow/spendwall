@@ -1,0 +1,157 @@
+#spendwall-warning {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  background: rgba(9, 10, 13, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif !important;
+}
+
+.spendwall-modal {
+  width: 440px !important;
+  max-width: calc(100vw - 40px) !important;
+
+  padding: 38px !important;
+
+  border: 1px solid #292a31 !important;
+  border-radius: 20px !important;
+
+  background: #121318 !important;
+  color: white !important;
+
+  box-shadow:
+    0 30px 100px rgba(0, 0, 0, 0.5) !important;
+
+  animation: spendwallIn 0.3s ease !important;
+}
+
+@keyframes spendwallIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.spendwall-logo {
+  width: 44px !important;
+  height: 44px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  margin-bottom: 24px !important;
+
+  border-radius: 12px !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ff4778,
+      #7657e8
+    ) !important;
+
+  color: white !important;
+
+  font-size: 17px !important;
+  font-weight: 700 !important;
+}
+
+.spendwall-badge {
+  display: inline-block !important;
+
+  margin-bottom: 13px !important;
+  padding: 6px 9px !important;
+
+  border-radius: 6px !important;
+
+  background: rgba(255, 67, 107, 0.1) !important;
+  color: #ff5c7f !important;
+
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+}
+
+.spendwall-modal h1 {
+  margin: 0 0 10px !important;
+
+  color: white !important;
+
+  font-size: 25px !important;
+  line-height: 1.2 !important;
+}
+
+.spendwall-modal > p {
+  margin: 0 0 25px !important;
+
+  color: #8e909a !important;
+
+  font-size: 13px !important;
+}
+
+.spendwall-problems {
+  margin-bottom: 25px !important;
+}
+
+.spendwall-problems div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  margin-top: 9px !important;
+  padding: 12px !important;
+
+  border: 1px solid #35232a !important;
+  border-radius: 9px !important;
+
+  background: rgba(255, 65, 105, 0.05) !important;
+  color: #d8a0ad !important;
+
+  font-size: 11px !important;
+}
+
+.spendwall-problems span {
+  width: 20px !important;
+  height: 20px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border-radius: 6px !important;
+
+  background: rgba(255, 65, 105, 0.1) !important;
+  color: #ff5377 !important;
+
+  font-weight: 700 !important;
+}
+
+#spendwall-close {
+  width: 100% !important;
+
+  padding: 12px !important;
+
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: white !important;
+  color: #16171b !important;
+
+  font-size: 12px !important;
+  font-weight: 600 !important;
+
+  cursor: pointer !important;
+}
