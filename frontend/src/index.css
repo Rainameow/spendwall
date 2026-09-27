@@ -1,7 +1,55 @@
 @import "tailwindcss";
- 
-@custom-variant dark (&:where(.dark, .dark *));
- 
+
+@theme {
+  --color-paper: #f5f1e8;
+  --color-paper-deep: #ebe5d6;
+  --color-ink: #121210;
+  --color-muted: #6b675d;
+  --color-lime: #c8f03c;
+  --color-lime-deep: #a9d321;
+  --color-coral: #ff6a55;
+  --color-sun: #ffcf3f;
+
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 0 rgba(18, 18, 16, 0.04), 0 18px 40px -22px rgba(18, 18, 16, 0.22);
+  --shadow-pop: 3px 3px 0 0 #121210;
+  --shadow-pop-lg: 5px 5px 0 0 #121210;
+
+  --animate-rise: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.35) both;
+  --animate-slide-in-right: slide-in-right 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade: fade 0.25s ease-out both;
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-float: float 5s ease-in-out infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    0% { opacity: 0; transform: scale(0.6) rotate(-10deg); }
+    100% { opacity: 1; transform: scale(1) rotate(-4deg); }
+  }
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(32px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-6deg); }
+    50% { transform: translateY(-8px) rotate(-3deg); }
+  }
+}
+
 html,
 body,
 #root {
@@ -9,8 +57,34 @@ body,
   width: 100%;
   min-height: 100%;
 }
- 
+
 body {
   min-width: 320px;
   min-height: 100vh;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

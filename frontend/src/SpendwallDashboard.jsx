@@ -1,99 +1,78 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
-} from 'recharts';
-import { 
-  Shield, 
-  ShieldAlert, 
-  ShieldCheck, 
-  Lock, 
-  Sliders, 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle2, 
-  XCircle, 
-  Zap, 
-  DollarSign, 
-  RefreshCw, 
-  ShoppingBag, 
-  Terminal, 
-  Eye, 
-  ArrowRight, 
-  ChevronRight, 
-  HelpCircle,
-  FileText,
-  Radio,
-  ExternalLink,
-  Settings,
-  Bell,
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  Sliders,
+  Activity,
+  Zap,
+  RefreshCw,
   Sparkles,
-  Send,
-  Bot,
-  User,
-  Cpu,
   Plus,
-  Trash2,
-  Globe,
-  Sun,
-  Moon,
-  Menu
+  Menu,
+  X,
+  ArrowRight,
+  ArrowUpRight,
+  ExternalLink,
+  Info,
 } from 'lucide-react';
+import { BrandMark } from './components/Brand.jsx';
+import RuleCard from './components/RuleCard.jsx';
+import AuditRow from './components/AuditRow.jsx';
+import ProtectionCard from './components/ProtectionCard.jsx';
+import AddRuleModal from './components/AddRuleModal.jsx';
+import InterceptModal from './components/InterceptModal.jsx';
+import CopilotDrawer from './components/CopilotDrawer.jsx';
+import { DecisionChip } from './components/Decision.jsx';
+import { DECISIONS, decisionFromStatus, decisionFromSeverity } from './components/decisions.js';
 
 const initialRules = [
-  { id: 'sub_block', name: 'Block Recurring Subscriptions', description: 'Automatically halt any checkout containing hidden or recurring monthly billing traps.', enabled: true, type: 'toggle', mlConfidenceWeight: 98, custom: false },
-  { id: 'max_spend', name: 'Hard Spending Limit ($120)', description: 'Maximum allowed total for any single autonomous shopping agent purchase.', enabled: true, type: 'limit', value: 120, mlConfidenceWeight: 99, custom: false },
-  { id: 'final_sale', name: 'No Final-Sale Items', description: 'Prevent non-refundable clearance merchandise from being authorized.', enabled: true, type: 'toggle', mlConfidenceWeight: 94, custom: false },
-  { id: 'shipping_fee', name: 'Max Unexpected Shipping ($15)', description: 'Flag or block checkouts where hidden freight or surge shipping exceeds tolerance.', enabled: true, type: 'limit', value: 15, mlConfidenceWeight: 91, custom: false },
-  { id: 'unknown_merchant', name: 'Verify Unknown Merchants', description: 'Pause agents instantly if purchasing from unverified or low-trust domains.', enabled: true, type: 'toggle', mlConfidenceWeight: 96, custom: false }
+  { id: 'sub_block', name: 'Block Recurring Subscriptions', description: 'Automatically halt any checkout containing hidden or recurring monthly billing traps.', enabled: true, type: 'toggle', custom: false },
+  { id: 'max_spend', name: 'Hard Spending Limit', description: 'Maximum allowed total for any single purchase, including ones made by AI shopping assistants.', enabled: true, type: 'limit', value: 120, custom: false },
+  { id: 'final_sale', name: 'No Final-Sale Items', description: 'Prevent non-refundable clearance merchandise from being authorized.', enabled: true, type: 'toggle', custom: false },
+  { id: 'shipping_fee', name: 'Max Unexpected Shipping', description: 'Flag or block checkouts where hidden freight or surge shipping exceeds tolerance.', enabled: true, type: 'limit', value: 15, custom: false },
+  { id: 'unknown_merchant', name: 'Verify Unknown Merchants', description: 'Pause the purchase if it comes from an unverified or low-trust domain.', enabled: true, type: 'toggle', custom: false }
 ];
 
 const initialLogs = [
-  { id: 'tx_9812', agent: 'ShopAI Assistant v4', merchant: 'TechHaven.io', item: 'Mechanical Keyboard Pro', amount: '$149.00', status: 'Blocked', reason: 'Exceeded Max Spending Limit ($120) [ML Confidence: 99.4%]', timestamp: '2 mins ago', severity: 'danger' },
-  { id: 'tx_9811', agent: 'LlamaBuy Agent', merchant: 'CloudSaaS Hub', item: 'Workspace Pro (Annual Tier)', amount: '$240.00', status: 'Blocked', reason: 'Recurring Subscription Detected [ML Confidence: 98.7%]', timestamp: '14 mins ago', severity: 'danger' },
-  { id: 'tx_9810', agent: 'AutoCart Agent', merchant: 'UrbanThreads', item: 'Designer Hoodie (Clearance)', amount: '$65.00', status: 'Warned & Approved', reason: 'Final-Sale policy triggered; Manual user override', timestamp: '1 hour ago', severity: 'warning' },
-  { id: 'tx_9809', agent: 'ShopAI Assistant v4', merchant: 'GadgetStore Direct', item: 'Wireless Earbuds X', amount: '$89.00', status: 'Approved', reason: 'Passed all Spendwall ML safety classifiers', timestamp: '3 hours ago', severity: 'success' }
+  { id: 'tx_9812', agent: 'ShopAI Assistant', merchant: 'TechHaven.io', item: 'Mechanical Keyboard Pro', amount: '$149.00', status: 'Blocked', reason: 'Total exceeded your hard spending limit', timestamp: '2 mins ago', severity: 'danger' },
+  { id: 'tx_9811', agent: 'LlamaBuy Agent', merchant: 'CloudSaaS Hub', item: 'Workspace Pro (Annual Tier)', amount: '$240.00', status: 'Blocked', reason: 'Recurring subscription detected at checkout', timestamp: '14 mins ago', severity: 'danger' },
+  { id: 'tx_9810', agent: 'AutoCart Agent', merchant: 'UrbanThreads', item: 'Designer Hoodie (Clearance)', amount: '$65.00', status: 'Warned & Approved', reason: 'Final-sale rule triggered; you chose to proceed', timestamp: '1 hour ago', severity: 'warning' },
+  { id: 'tx_9809', agent: 'ShopAI Assistant', merchant: 'GadgetStore Direct', item: 'Wireless Earbuds X', amount: '$89.00', status: 'Approved', reason: 'Passed every active Spendwall rule', timestamp: '3 hours ago', severity: 'success' }
 ];
 
 const mockSimulations = [
   {
     id: 'sim_1',
     title: 'Subscription Trap Injection',
-    agent: 'ShopAI Assistant v4',
+    agent: 'ShopAI Assistant',
     merchant: 'MegaStream & Goods',
     item: 'Smart Home Hub Bundle',
     intendedPrice: '$99.00',
     checkoutPrice: '$99.00 + $29/mo VIP Club',
     violation: 'Recurring Subscription Detected',
-    mlConfidence: '98.9%',
-    description: 'Autonomous agent attempted checkout, but merchant dynamically injected a pre-checked $29/month recurring membership box during final payment authorization.',
+    description: 'The shopping assistant went to check out, but the merchant slipped a pre-checked $29/month membership box onto the final payment screen.',
     diffs: [
       { label: 'Item Base Cost', original: '$99.00', final: '$99.00', changed: false },
-      { label: 'Billing Terms', original: 'One-time payment', final: 'One-time + Monthly $29.00 Subscription', changed: true },
-      { label: 'Refund Policy', original: '30-Day Money Back', final: 'All Digital Fees Non-Refundable', changed: true }
+      { label: 'Billing Terms', original: 'One-time payment', final: 'One-time + $29.00/mo subscription', changed: true },
+      { label: 'Refund Policy', original: '30-Day Money Back', final: 'All digital fees non-refundable', changed: true }
     ],
     severity: 'danger'
   },
   {
     id: 'sim_2',
-    title: 'Over Budget & Hidden Freight Surcharge',
+    title: 'Over Budget & Hidden Freight',
     agent: 'LlamaBuy Agent',
     merchant: 'GlobalParts Express',
     item: 'Ergonomic Desk Frame',
     intendedPrice: '$110.00',
     checkoutPrice: '$135.00 (+$25 Express Freight)',
     violation: 'Spending Limit Exceeded & High Shipping',
-    mlConfidence: '99.2%',
-    description: 'Final invoice exceeded your $120 hard cap and included an unexpected $25 freight fee not present in initial agent prompt quote.',
+    description: 'The final invoice went over your $120 hard cap and included a $25 freight fee that was not in the original quote.',
     diffs: [
       { label: 'Item Price', original: '$110.00', final: '$110.00', changed: false },
-      { label: 'Shipping Fee', original: 'Free Shipping', final: '$25.00 Express Freight Surcharge', changed: true },
-      { label: 'Total Charge', original: '$110.00', final: '$135.00 (Limit: $120)', changed: true }
+      { label: 'Shipping Fee', original: 'Free Shipping', final: '$25.00 express freight', changed: true },
+      { label: 'Total Charge', original: '$110.00', final: '$135.00 (limit: $120)', changed: true }
     ],
     severity: 'danger'
   },
@@ -106,11 +85,10 @@ const mockSimulations = [
     intendedPrice: '$85.00',
     checkoutPrice: '$85.00 (Final Sale)',
     violation: 'Final-Sale Item Detected',
-    mlConfidence: '95.6%',
-    description: 'Merchant re-classified the merchandise as "Final Sale - No Returns" on the final payment screen, violating your negative constraint guardrail.',
+    description: 'The merchant re-labelled the sneakers as "Final Sale — No Returns" on the last screen. That conflicts with your final-sale rule.',
     diffs: [
       { label: 'Item Price', original: '$85.00', final: '$85.00', changed: false },
-      { label: 'Return Policy', original: 'Free 30-Day Returns', final: 'FINAL SALE (Strictly Non-Returnable)', changed: true }
+      { label: 'Return Policy', original: 'Free 30-Day Returns', final: 'Final sale (non-returnable)', changed: true }
     ],
     severity: 'warning'
   }
@@ -118,52 +96,19 @@ const mockSimulations = [
 
 const emptyDraft = { name: '', description: '', type: 'toggle', value: '' };
 
-const weeklySavingsData = [
-  { day: 'Mon', saved: 42 },
-  { day: 'Tue', saved: 18 },
-  { day: 'Wed', saved: 96 },
-  { day: 'Thu', saved: 34 },
-  { day: 'Fri', saved: 71 },
-  { day: 'Sat', saved: 55 },
-  { day: 'Sun', saved: 26 },
+const marqueeItems = ['Hidden subscriptions', 'Surprise shipping', 'Final-sale switches', 'Over-budget carts', 'Unknown merchants', 'AI agents going rogue'];
+
+const navItems = [
+  { key: 'dashboard', label: 'Control Center', icon: Sliders },
+  { key: 'simulator', label: 'TrueCost Simulator', icon: Zap },
+  { key: 'logs', label: 'Audit Trail', icon: Activity },
 ];
-
-const liveTickerEvents = [
-  '🛡️ Blocked a $29/mo subscription trap at MegaStream & Goods',
-  '⚡ ShopAI Assistant v4 cleared a checkout at GadgetStore Direct',
-  '🛡️ Flagged unexpected $25 freight fee at GlobalParts Express',
-  '⚡ AutoCart Agent verified TechHaven.io as a trusted merchant',
-  '🛡️ Blocked final-sale item at StyleOutlet Co.',
-  '⚡ LlamaBuy Agent completed a $89.00 purchase within limits',
-];
-
-function AnimatedNumber({ value, duration = 1200, prefix = '', suffix = '' }) {
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    let start = null;
-    let frame;
-    const step = (timestamp) => {
-      if (!start) start = timestamp;
-      const progress = Math.min((timestamp - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(eased * value));
-      if (progress < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [value, duration]);
-
-  return <span>{prefix}{display.toLocaleString()}{suffix}</span>;
-}
 
 export default function SpendwallApp() {
-  const [theme, setTheme] = useState('dark'); // 'dark' | 'light'
   const [rules, setRules] = useState(initialRules);
   const [logs, setLogs] = useState(initialLogs);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logFilter, setLogFilter] = useState('all');
-  const [tickerIndex, setTickerIndex] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSimulation, setActiveSimulation] = useState(null);
   const [notification, setNotification] = useState(null);
@@ -173,11 +118,11 @@ export default function SpendwallApp() {
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
   const [ruleDraft, setRuleDraft] = useState(emptyDraft);
   const [ruleFormError, setRuleFormError] = useState('');
-  
+
   const [chatMessages, setChatMessages] = useState([
     {
       role: 'assistant',
-      content: "Hi! I'm your Spendwall copilot. Ask me about your rules, recent blocks, or anything your shopping agents have been up to.",
+      content: "Hi! I'm your Spendwall copilot. Ask me about your rules, recent decisions, or how a checkout would be judged.",
       timestamp: 'Just now'
     }
   ]);
@@ -188,15 +133,6 @@ export default function SpendwallApp() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isTyping]);
-
-  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'));
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTickerIndex((i) => (i + 1) % liveTickerEvents.length);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, []);
 
   const showToast = (message, type = 'success') => {
     setNotification({ message, type });
@@ -260,7 +196,6 @@ export default function SpendwallApp() {
       enabled: true,
       type: ruleDraft.type,
       value: ruleDraft.type === 'limit' ? Number(ruleDraft.value) : undefined,
-      mlConfidenceWeight: 75,
       custom: true
     };
 
@@ -277,13 +212,13 @@ export default function SpendwallApp() {
       item: sim.item,
       amount: sim.checkoutPrice.split(' ')[0],
       status: 'Blocked',
-      reason: `Blocked by Spendwall ML Classifier (${sim.violation}) [Confidence: ${sim.mlConfidence}]`,
+      reason: `Blocked by your rules: ${sim.violation}`,
       timestamp: 'Just now',
       severity: 'danger'
     };
     setLogs([newLog, ...logs]);
     setActiveSimulation(null);
-    showToast('Transaction successfully intercepted and blocked by ML engine!', 'danger');
+    showToast('Purchase blocked before payment. Logged to your audit trail.', 'danger');
   };
 
   const handleOverrideTransaction = (sim) => {
@@ -303,6 +238,36 @@ export default function SpendwallApp() {
     showToast('User override recorded. Transaction completed.', 'warning');
   };
 
+  const buildCopilotReply = (query) => {
+    const enabledRules = rules.filter(r => r.enabled);
+    const subRule = rules.find(r => r.id === 'sub_block');
+    const limitRule = rules.find(r => r.id === 'max_spend');
+    const blocked = logs.filter(l => l.status === 'Blocked');
+
+    if (query.includes('subscription') || query.includes('recurring')) {
+      if (!subRule) return "You don't have a subscription rule right now. Add a custom rule to catch recurring charges.";
+      return subRule.enabled
+        ? "Your 'Block Recurring Subscriptions' rule is ON. Any checkout with a recurring charge will be blocked before payment."
+        : "Your 'Block Recurring Subscriptions' rule is currently OFF. Turn it on in the Control Center to catch recurring charges.";
+    }
+    if (query.includes('limit') || query.includes('spend')) {
+      if (!limitRule) return "You don't have a hard spending limit set.";
+      return limitRule.enabled
+        ? `Your hard spending limit is $${limitRule.value} per purchase. Anything above that gets blocked.`
+        : `Your hard spending limit ($${limitRule.value}) is currently turned off.`;
+    }
+    if (query.includes('block') || query.includes('status') || query.includes('audit') || query.includes('recent')) {
+      if (blocked.length === 0) return 'Nothing has been blocked in your audit trail yet.';
+      const latest = blocked[0];
+      return `Your audit trail has ${blocked.length} blocked ${blocked.length === 1 ? 'purchase' : 'purchases'}. The latest: ${latest.item} at ${latest.merchant} (${latest.amount}) — ${latest.reason}.`;
+    }
+    if (query.includes('rule') || query.includes('active') || query.includes('safety')) {
+      if (enabledRules.length === 0) return 'All your rules are paused right now, so nothing is being checked.';
+      return `You have ${enabledRules.length} active ${enabledRules.length === 1 ? 'rule' : 'rules'}: ${enabledRules.map(r => r.name).join(', ')}.`;
+    }
+    return 'I can explain your rules, recent decisions, or how a checkout would be judged. Try asking about subscriptions, your spending limit, or recent blocks.';
+  };
+
   const handleSendChat = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -314,15 +279,7 @@ export default function SpendwallApp() {
     setIsTyping(true);
 
     setTimeout(() => {
-      let aiResponse = "I've checked your parameters. All active shopping agents are operating within safe guardrail parameters.";
-      if (query.includes('subscription') || query.includes('recurring')) {
-        aiResponse = "Your 'Block Recurring Subscriptions' rule is ACTIVE. Our Zero-Shot classifier is scanning DOM text with 98.9% precision.";
-      } else if (query.includes('limit') || query.includes('spend')) {
-        aiResponse = "Your hard spending limit is configured to $120.00 per transaction.";
-      } else if (query.includes('status') || query.includes('audit')) {
-        aiResponse = "In the last 24 hours, Spendwall has intercepted 14 suspicious checkouts and saved $342 in hidden charges.";
-      }
-
+      const aiResponse = buildCopilotReply(query);
       setChatMessages((prev) => [
         ...prev,
         { role: 'assistant', content: aiResponse, timestamp: 'Just now' }
@@ -331,717 +288,448 @@ export default function SpendwallApp() {
     }, 1000);
   };
 
+  const decisionCounts = logs.reduce(
+    (acc, log) => {
+      acc[decisionFromStatus(log.status)] += 1;
+      return acc;
+    },
+    { ALLOW: 0, WARN: 0, BLOCK: 0 }
+  );
+
+  const filteredLogs = logs.filter((log) => logFilter === 'all' || log.status === logFilter);
+
+  const goTo = (tab) => {
+    setActiveTab(tab);
+    setIsSidebarOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toastStyles = {
+    danger: { bg: 'bg-coral', icon: ShieldAlert },
+    warning: { bg: 'bg-sun', icon: AlertTriangle },
+    success: { bg: 'bg-lime', icon: CheckCircle2 },
+    info: { bg: 'bg-white', icon: Info },
+  };
+
   return (
-    <div className={theme === 'dark' ? 'dark' : ''}>
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-violet-500 selection:text-slate-950 transition-colors duration-200">
-      
-      {notification && (
-        <div className="fixed top-6 right-6 z-50 animate-bounce duration-300">
-          <div className={`flex items-center space-x-3 px-5 py-3 rounded-xl shadow-2xl border backdrop-blur-md ${
-            notification.type === 'danger' ? 'bg-rose-50 dark:bg-rose-950/90 border-rose-300 dark:border-rose-500/50 text-rose-700 dark:text-rose-200' :
-            notification.type === 'warning' ? 'bg-amber-50 dark:bg-amber-950/90 border-amber-300 dark:border-amber-500/50 text-amber-700 dark:text-amber-200' :
-            'bg-violet-50 dark:bg-violet-950/90 border-violet-300 dark:border-violet-500/50 text-violet-700 dark:text-violet-200'
-          }`}>
-            {notification.type === 'danger' ? <ShieldAlert className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" /> :
-             notification.type === 'warning' ? <AlertTriangle className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" /> :
-             <CheckCircle2 className="w-5 h-5 text-violet-500 dark:text-violet-400 shrink-0" />}
-            <span className="text-sm font-medium">{notification.message}</span>
+    <div className="min-h-screen bg-paper font-sans text-ink antialiased">
+
+      {notification && (() => {
+        const t = toastStyles[notification.type] || toastStyles.info;
+        const Icon = t.icon;
+        return (
+          <div className="fixed right-4 top-4 z-[60] animate-slide-in-right sm:right-6 sm:top-6" role="status" aria-live="polite">
+            <div className={`flex max-w-sm items-center gap-3 rounded-2xl border-2 border-ink px-4 py-3 shadow-pop ${t.bg}`}>
+              <Icon className="h-5 w-5 shrink-0 text-ink" aria-hidden="true" />
+              <span className="text-sm font-bold text-ink">{notification.message}</span>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {showAddRuleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 dark:bg-slate-950/85 backdrop-blur-xl animate-fade-in">
-          <div className="relative w-full max-w-lg bg-gradient-to-b from-violet-50 dark:from-violet-950/30 via-white dark:via-slate-900 to-white dark:to-slate-950 border-2 border-violet-300 dark:border-violet-500/40 rounded-2xl shadow-[0_0_60px_rgba(16,185,129,0.2)] overflow-hidden">
-
-            <div className="flex items-center justify-between px-6 py-4 bg-violet-100/60 dark:bg-violet-950/40 border-b border-violet-200 dark:border-violet-500/20">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-violet-500/20 rounded-xl border border-violet-500/40">
-                  <Plus className="w-5 h-5 text-violet-600 dark:text-violet-400" />
-                </div>
-                <div>
-                  <span className="text-xs font-mono uppercase tracking-widest text-violet-600 dark:text-violet-400 font-semibold">Firewall Engine</span>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Create Custom Guardrail</h3>
-                </div>
-              </div>
-              <button
-                onClick={closeAddRuleModal}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateRule} className="p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Rule Name</label>
-                <input
-                  type="text"
-                  value={ruleDraft.name}
-                  onChange={(e) => setRuleDraft({ ...ruleDraft, name: e.target.value })}
-                  placeholder="e.g. Block Gambling Merchants"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-violet-500/60 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none transition"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Description</label>
-                <textarea
-                  value={ruleDraft.description}
-                  onChange={(e) => setRuleDraft({ ...ruleDraft, description: e.target.value })}
-                  placeholder="What should Spendwall watch for, and what happens when it triggers?"
-                  rows={3}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-violet-500/60 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none transition resize-none"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Rule Type</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRuleDraft({ ...ruleDraft, type: 'toggle' })}
-                    className={`p-3 rounded-xl border text-left transition ${
-                      ruleDraft.type === 'toggle'
-                        ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-400 dark:border-violet-500/50 text-violet-700 dark:text-violet-300'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 font-semibold text-sm">
-                      <Lock className="w-4 h-4" /> On/Off Block
-                    </div>
-                    <p className="text-xs mt-1 opacity-80">Blocks any match outright, no threshold.</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRuleDraft({ ...ruleDraft, type: 'limit' })}
-                    className={`p-3 rounded-xl border text-left transition ${
-                      ruleDraft.type === 'limit'
-                        ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-400 dark:border-violet-500/50 text-violet-700 dark:text-violet-300'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 font-semibold text-sm">
-                      <DollarSign className="w-4 h-4" /> Dollar Limit
-                    </div>
-                    <p className="text-xs mt-1 opacity-80">Blocks only when a dollar cap is exceeded.</p>
-                  </button>
-                </div>
-              </div>
-
-              {ruleDraft.type === 'limit' && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">Limit Amount</label>
-                  <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-800 focus-within:border-violet-500/60 transition">
-                    <span className="text-sm text-slate-500 dark:text-slate-400 font-mono">$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={ruleDraft.value}
-                      onChange={(e) => setRuleDraft({ ...ruleDraft, value: e.target.value })}
-                      placeholder="50.00"
-                      className="w-full bg-transparent text-slate-900 dark:text-white font-mono text-sm focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {ruleFormError && (
-                <div className="flex items-center gap-2 text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 rounded-xl px-3 py-2">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{ruleFormError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2">
-                <Cpu className="w-3.5 h-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
-                <span>New rules start out cautious and get sharper the more checkouts they see.</span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <button
-                  type="submit"
-                  className="w-full sm:flex-1 py-3 px-4 bg-violet-500 hover:bg-violet-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-violet-500/20 transition flex items-center justify-center space-x-2"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Create Guardrail</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={closeAddRuleModal}
-                  className="w-full sm:w-auto py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold rounded-xl transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AddRuleModal
+          ruleDraft={ruleDraft}
+          setRuleDraft={setRuleDraft}
+          ruleFormError={ruleFormError}
+          onSubmit={handleCreateRule}
+          onClose={closeAddRuleModal}
+        />
       )}
 
       {activeSimulation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 dark:bg-slate-950/85 backdrop-blur-xl animate-fade-in">
-          <div className="relative w-full max-w-2xl bg-gradient-to-b from-rose-50 dark:from-rose-950/40 via-white dark:via-slate-900 to-white dark:to-slate-950 border-2 border-rose-400 dark:border-rose-500/60 rounded-2xl shadow-[0_0_60px_rgba(244,63,94,0.3)] overflow-hidden">
-            
-            <div className="flex items-center justify-between px-6 py-4 bg-rose-100/60 dark:bg-rose-950/60 border-b border-rose-200 dark:border-rose-500/30">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-rose-500/20 rounded-xl border border-rose-500/40 animate-pulse">
-                  <ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-                </div>
-                <div>
-                  <span className="text-xs font-mono uppercase tracking-widest text-rose-600 dark:text-rose-400 font-semibold">Spendwall ML Interceptor Active</span>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI Agent Checkout Violation Detected!</h3>
-                </div>
-              </div>
-              <button 
-                onClick={() => setActiveSimulation(null)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-500/30 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Target Agent: <strong className="text-slate-900 dark:text-white">{activeSimulation.agent}</strong></span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30 font-mono">
-                      {activeSimulation.mlConfidence} sure
-                    </span>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 font-mono font-semibold">
-                      {activeSimulation.violation}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{activeSimulation.description}</p>
-                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-violet-500 dark:text-violet-400" />
-                  <span>Merchant: <strong className="text-slate-700 dark:text-slate-200">{activeSimulation.merchant}</strong></span>
-                  <span>•</span>
-                  <span>Item: <strong className="text-slate-700 dark:text-slate-200">{activeSimulation.item}</strong></span>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-sky-500 dark:text-sky-400" /> Checkout Diff-Checker (Intent vs. Execution)
-                </h4>
-                <div className="space-y-2 bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                  {activeSimulation.diffs.map((diff, idx) => (
-                    <div key={idx} className={`flex items-center justify-between text-sm p-2 rounded-lg ${diff.changed ? 'bg-rose-100/60 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/20' : 'bg-white dark:bg-slate-900/50'}`}>
-                      <span className="font-medium text-slate-600 dark:text-slate-300">{diff.label}</span>
-                      <div className="flex items-center space-x-3 font-mono text-xs">
-                        <span className="text-slate-400 line-through">{diff.original}</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                        <span className={diff.changed ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-violet-600 dark:text-violet-400 font-bold'}>
-                          {diff.final}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                <button
-                  onClick={() => handleBlockTransaction(activeSimulation)}
-                  className="w-full sm:flex-1 py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-lg shadow-rose-600/30 transition flex items-center justify-center space-x-2"
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                  <span>Block Transaction</span>
-                </button>
-                <button
-                  onClick={() => handleOverrideTransaction(activeSimulation)}
-                  className="w-full sm:flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold rounded-xl transition flex items-center justify-center space-x-2"
-                >
-                  <ShieldCheck className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                  <span>Override & Proceed</span>
-                </button>
-                <button
-                  onClick={() => { setActiveSimulation(null); setActiveTab('dashboard'); showToast('Adjust rules in firewall engine.', 'info'); }}
-                  className="w-full sm:w-auto py-3 px-4 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-sky-600 dark:text-sky-400 border border-sky-400 dark:border-sky-500/30 font-semibold rounded-xl transition flex items-center justify-center space-x-2"
-                >
-                  <Sliders className="w-4 h-4" />
-                  <span>Modify Guardrails</span>
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
+        <InterceptModal
+          sim={activeSimulation}
+          onBlock={handleBlockTransaction}
+          onOverride={handleOverrideTransaction}
+          onClose={() => setActiveSimulation(null)}
+          onModify={() => { setActiveSimulation(null); setActiveTab('dashboard'); showToast('Adjust rules in firewall engine.', 'info'); }}
+        />
       )}
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-              title="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-violet-500 to-sky-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
-              <Shield className="w-6 h-6 text-slate-950 fill-slate-950" />
-            </div>
-            <div>
-              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
-                Spendwall
-              </span>
-              <span className="ml-2 text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
-                ACTIVE ML FIREWALL
-              </span>
-            </div>
-          </div>
+      <header className="sticky top-0 z-40 border-b-2 border-ink/5 bg-paper/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <button type="button" onClick={() => goTo('dashboard')} className="group" aria-label="Spendwall home">
+            <BrandMark />
+          </button>
 
-          <nav className="hidden md:flex items-center space-x-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'dashboard' ? 'bg-violet-500 text-slate-950 font-semibold shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-            >
-              <Sliders className="w-4 h-4" />
-              <span>Control Center</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('simulator')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 ${activeTab === 'simulator' ? 'bg-violet-500 text-slate-950 font-semibold shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-            >
-              <Zap className="w-4 h-4" />
-              <span>Checkout Simulator</span>
-            </button>
+          <nav aria-label="Main" className="hidden items-center gap-1 rounded-full border-2 border-ink/10 bg-white p-1 lg:flex">
+            {navItems.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => goTo(key)}
+                aria-current={activeTab === key ? 'page' : undefined}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition ${
+                  activeTab === key ? 'bg-ink text-paper' : 'text-muted hover:bg-paper hover:text-ink'
+                }`}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {label}
+                {key === 'logs' && (
+                  <span className={`rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === key ? 'bg-lime text-ink' : 'bg-paper text-muted'}`}>
+                    {logs.length}
+                  </span>
+                )}
+              </button>
+            ))}
           </nav>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setIsChatOpen(true)}
-              className="px-3.5 py-2 bg-indigo-500/10 dark:bg-indigo-600/20 hover:bg-indigo-500/20 dark:hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-300 border border-indigo-400 dark:border-indigo-500/40 rounded-xl text-xs font-semibold transition flex items-center space-x-2 shadow-lg shadow-indigo-600/10"
+              className="flex items-center gap-2 rounded-full border-2 border-ink bg-lime px-4 py-2 text-sm font-bold text-ink shadow-pop transition hover:-translate-y-0.5 hover:shadow-pop-lg"
             >
-              <Sparkles className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               <span className="hidden sm:inline">AI Copilot</span>
             </button>
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-400 to-sky-600 flex items-center justify-center text-slate-950 font-bold text-sm shadow">
-              US
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(true)}
+              className="rounded-full border-2 border-ink/10 bg-white p-2 text-ink transition hover:border-ink lg:hidden"
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Slide-out sidebar */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm animate-fade-in"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-          <div className="relative w-72 max-w-[80vw] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Menu</span>
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-              >
-                <XCircle className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex justify-end lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <button type="button" className="absolute inset-0 animate-fade bg-ink/30 backdrop-blur-sm" aria-label="Close menu" onClick={() => setIsSidebarOpen(false)} />
+          <div className="relative flex h-full w-80 max-w-[85vw] animate-slide-in-right flex-col gap-6 border-l-2 border-ink bg-paper p-5">
+            <div className="flex items-center justify-between">
+              <BrandMark />
+              <button type="button" onClick={() => setIsSidebarOpen(false)} aria-label="Close menu" className="rounded-full border-2 border-ink bg-white p-1.5 transition hover:rotate-90">
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <nav className="p-3 space-y-1">
-              <button
-                onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              >
-                <Sliders className="w-4 h-4" /> Control Center
-              </button>
-              <button
-                onClick={() => { setActiveTab('simulator'); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'simulator' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              >
-                <Zap className="w-4 h-4" /> Checkout Simulator
-              </button>
-              <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800">
+            <nav aria-label="Mobile" className="flex flex-col gap-2">
+              {navItems.map(({ key, label, icon: Icon }) => (
                 <button
-                  onClick={() => { setActiveTab('logs'); setIsSidebarOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'logs' ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                  key={key}
+                  type="button"
+                  onClick={() => goTo(key)}
+                  aria-current={activeTab === key ? 'page' : undefined}
+                  className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left font-display text-lg font-bold transition ${
+                    activeTab === key ? 'border-ink bg-lime shadow-pop' : 'border-transparent bg-white hover:border-ink/20'
+                  }`}
                 >
-                  <Activity className="w-4 h-4" /> Audit Trail
-                  <span className="ml-auto text-xs font-mono text-slate-400 dark:text-slate-500">{logs.length}</span>
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  {label}
+                  {key === 'logs' && <span className="ml-auto text-sm tabular-nums text-muted">{logs.length}</span>}
                 </button>
-              </div>
-              <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  onClick={toggleTheme}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                >
-                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                </button>
-              </div>
+              ))}
             </nav>
           </div>
         </div>
       )}
 
-      {/* Live activity ticker */}
-      <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-violet-600 dark:text-violet-400 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"></span>
-            Live
-          </span>
-          <div key={tickerIndex} className="text-xs text-slate-600 dark:text-slate-400 animate-fade-in truncate">
-            {liveTickerEvents[tickerIndex]}
-          </div>
+      <div className="overflow-hidden border-y-2 border-ink bg-lime" aria-hidden="true">
+        <div className="flex w-max animate-marquee items-center gap-8 py-2.5">
+          {[...marqueeItems, ...marqueeItems].map((item, i) => (
+            <span key={i} className="flex items-center gap-8 whitespace-nowrap font-display text-sm font-extrabold uppercase tracking-wider text-ink">
+              {item}
+              <span className="h-2 w-2 rounded-full bg-coral" />
+            </span>
+          ))}
         </div>
       </div>
 
-      <style>{`
-        @keyframes fade-in-ticker {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in { animation: fade-in-ticker 0.4s ease-out; }
-      `}</style>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
 
-      <div className="md:hidden flex items-center justify-around bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-2">
-        <button onClick={() => setActiveTab('dashboard')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'dashboard' ? 'bg-violet-500 text-slate-950 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>Control Center</button>
-        <button onClick={() => setActiveTab('simulator')} className={`text-xs px-3 py-1.5 rounded-lg ${activeTab === 'simulator' ? 'bg-violet-500 text-slate-950 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>Simulator</button>
-      </div>
-
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {activeTab === 'dashboard' && (
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-10">
 
-            <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-2xl p-4 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-violet-800 dark:text-violet-200">
-                Spendwall watches every purchase your AI shopping agents try to make and steps in before checkout completes if something looks off — a surprise fee, a sneaky subscription, or a price over your limit.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-violet-500 dark:text-violet-400">
-                  <ShieldCheck className="w-16 h-16" />
-                </div>
-                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">Protection Status</span>
-                <div className="mt-2 flex items-baseline space-x-2">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white">Active</span>
-                </div>
-                <p className="mt-1 text-xs text-violet-600 dark:text-violet-400 flex items-center gap-1 font-medium">
-                  <Cpu className="w-3.5 h-3.5" /> Watching every checkout, live
+            <div className="grid animate-rise grid-cols-1 gap-5 lg:grid-cols-12">
+              <section className="relative overflow-hidden rounded-[32px] bg-white p-7 shadow-card sm:p-10 lg:col-span-8">
+                <p className="inline-flex items-center gap-2 rounded-full border-2 border-ink/10 bg-paper px-3 py-1 text-xs font-bold text-ink">
+                  <span className="h-2 w-2 rounded-full bg-coral" aria-hidden="true" />
+                  Personal financial firewall
                 </p>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-sky-500 dark:text-sky-400">
-                  <ShieldAlert className="w-16 h-16" />
-                </div>
-                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">Traps Blocked (24h)</span>
-                <div className="mt-2 flex items-baseline space-x-2">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white"><AnimatedNumber value={14} suffix=" Intercepts" /></span>
-                </div>
-                <p className="mt-1 text-xs text-sky-600 dark:text-sky-400 flex items-center gap-1 font-medium">
-                  <Shield className="w-3.5 h-3.5" /> Saved ~<AnimatedNumber value={342} prefix="$" /> in hidden charges
+                <h1 className="mt-6 font-display text-[clamp(3.25rem,9vw,7rem)] font-extrabold leading-[0.88] tracking-[-0.045em] text-ink">
+                  Your money.
+                  <br />
+                  <span className="bg-[linear-gradient(transparent_58%,var(--color-lime)_58%,var(--color-lime)_92%,transparent_92%)] px-1">
+                    Your rules.
+                  </span>
+                </h1>
+                <p className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted">
+                  Spendwall checks every online and AI-assisted purchase against the rules you set — before checkout — and gives it a clear call.
                 </p>
-              </div>
+                <div className="mt-6 flex flex-wrap items-center gap-2">
+                  <DecisionChip decision="ALLOW" />
+                  <DecisionChip decision="WARN" />
+                  <DecisionChip decision="BLOCK" />
+                </div>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => goTo('simulator')}
+                    className="group flex items-center justify-center gap-2 rounded-full border-2 border-ink bg-ink px-6 py-3.5 font-bold text-paper transition hover:-translate-y-0.5"
+                  >
+                    Test a checkout
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openAddRuleModal}
+                    className="flex items-center justify-center gap-2 rounded-full border-2 border-ink bg-white px-6 py-3.5 font-bold text-ink transition hover:bg-lime"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Add a rule
+                  </button>
+                </div>
 
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-amber-500 dark:text-amber-400">
-                  <DollarSign className="w-16 h-16" />
+                <div className="pointer-events-none absolute -right-4 top-10 hidden animate-float rounded-3xl border-2 border-ink bg-coral px-5 py-4 shadow-pop-lg md:block" aria-hidden="true">
+                  <p className="font-display text-3xl font-extrabold leading-none tracking-tight">BLOCK</p>
+                  <p className="mt-1 text-xs font-bold">+$29/mo sneaky add-on</p>
                 </div>
-                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hard Spending Limit</span>
-                <div className="mt-2 flex items-baseline space-x-2">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white"><AnimatedNumber value={120} prefix="$" /></span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">per order</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Configured in guardrails</p>
-              </div>
+              </section>
 
-              <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 text-purple-500 dark:text-purple-400">
-                  <Terminal className="w-16 h-16" />
-                </div>
-                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">Connected Agents</span>
-                <div className="mt-2 flex items-baseline space-x-2">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white"><AnimatedNumber value={3} suffix=" Agents" /></span>
-                </div>
-                <p className="mt-1 text-xs text-purple-600 dark:text-purple-400 font-medium">ShopAI, LlamaBuy, AutoCart</p>
-              </div>
+              <ProtectionCard rules={rules} decisionCounts={decisionCounts} className="lg:col-span-4" />
             </div>
 
-            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-violet-500 dark:text-violet-400" /> This Week's Savings
-                </h3>
-                <span className="text-xs font-mono text-slate-400 dark:text-slate-500">Last 7 days</span>
-              </div>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklySavingsData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-slate-200 dark:text-slate-800" vertical={false} />
-                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'currentColor' }} axisLine={false} tickLine={false} className="text-slate-400 dark:text-slate-500" />
-                    <YAxis tick={{ fontSize: 11, fill: 'currentColor' }} axisLine={false} tickLine={false} className="text-slate-400 dark:text-slate-500" tickFormatter={(v) => `$${v}`} />
-                    <Tooltip
-                      formatter={(value) => [`$${value}`, 'Saved']}
-                      contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '12px' }}
-                      labelStyle={{ color: '#94a3b8' }}
-                    />
-                    <Area type="monotone" dataKey="saved" stroke="#8b5cf6" strokeWidth={2} fill="url(#savingsGradient)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-violet-500 dark:text-violet-400" /> Your Shopping Rules
+            <section aria-labelledby="decisions-title" className="animate-rise [animation-delay:80ms]">
+              <div className="mb-4 flex items-end justify-between gap-4">
+                <h2 id="decisions-title" className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
+                  Three possible answers<span className="text-coral">.</span>
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Set the boundaries your shopping agents have to stay inside. Spendwall checks every checkout against these before any money moves.
-                </p>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={openAddRuleModal}
-                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-violet-600 dark:text-violet-400 border border-violet-400 dark:border-violet-500/30 font-bold rounded-xl transition flex items-center justify-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Custom Rule</span>
-                </button>
-                <button 
-                  onClick={() => setActiveTab('simulator')}
-                  className="px-4 py-2.5 bg-violet-500 hover:bg-violet-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-violet-500/20 transition flex items-center justify-center space-x-2"
-                >
-                  <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>Test Checkout Simulator</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {rules.map((rule) => (
-                <div 
-                  key={rule.id}
-                  className={`p-6 rounded-2xl border transition duration-200 ${
-                    rule.enabled 
-                      ? 'bg-white dark:bg-slate-900/80 border-violet-300 dark:border-violet-500/30 shadow-[0_0_25px_rgba(16,185,129,0.05)]' 
-                      : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 opacity-60'
-                  }`}
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center space-x-3 flex-wrap gap-y-1">
-                        <span className={`h-2.5 w-2.5 rounded-full ${rule.enabled ? 'bg-violet-400 animate-pulse' : 'bg-slate-400 dark:bg-slate-600'}`}></span>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-white">{rule.name}</h3>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${rule.enabled ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700'}`}>
-                          {rule.enabled ? 'ACTIVE' : 'DISABLED'}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {['ALLOW', 'WARN', 'BLOCK'].map((key, i) => {
+                  const d = DECISIONS[key];
+                  const Icon = d.icon;
+                  return (
+                    <article
+                      key={key}
+                      className={`group relative flex flex-col justify-between gap-10 overflow-hidden rounded-[28px] border-2 border-ink p-6 transition duration-300 hover:-translate-y-1 hover:shadow-pop-lg ${d.chip} ${i === 1 ? 'md:translate-y-4 md:hover:translate-y-3' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Icon className="h-7 w-7 transition-transform duration-300 group-hover:rotate-12" aria-hidden="true" />
+                        <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-bold tabular-nums text-paper">
+                          {decisionCounts[key]} logged
                         </span>
-                        <span
-                          className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20"
-                          title="How confident Spendwall is when it catches this"
-                        >
-                          {rule.mlConfidenceWeight}% accuracy
-                        </span>
-                        {rule.custom && (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-400 dark:border-indigo-500/30">
-                            CUSTOM
-                          </span>
-                        )}
                       </div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 pl-5">{rule.description}</p>
-                    </div>
+                      <div>
+                        <h3 className="font-display text-6xl font-extrabold leading-none tracking-tight">{d.label}</h3>
+                        <p className="mt-3 max-w-xs text-sm font-medium leading-relaxed text-ink/80">{d.blurb}</p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
 
-                    <div className="flex items-center space-x-3 pl-5 md:pl-0">
-                      {rule.type === 'limit' && rule.enabled && (
-                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-800">
-                          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">$</span>
-                          <input 
-                            type="number" 
-                            value={rule.value} 
-                            onChange={(e) => handleUpdateLimit(rule.id, e.target.value)}
-                            className="w-16 bg-transparent text-slate-900 dark:text-white font-mono text-sm focus:outline-none"
-                          />
-                        </div>
-                      )}
-                      
-                      <button
-                        onClick={() => handleToggleRule(rule.id)}
-                        className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          rule.enabled ? 'bg-violet-500' : 'bg-slate-300 dark:bg-slate-800'
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                            rule.enabled ? 'translate-x-7' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-
-                      {rule.custom && (
-                        <button
-                          onClick={() => handleDeleteRule(rule.id)}
-                          className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-transparent hover:border-rose-300 dark:hover:border-rose-500/30 transition"
-                          title="Delete custom rule"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
+            <div className="grid grid-cols-1 gap-6 pt-4 lg:grid-cols-12">
+              <section aria-labelledby="rules-title" className="animate-rise [animation-delay:140ms] lg:col-span-8">
+                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">Firewall rules</p>
+                    <h2 id="rules-title" className="mt-1 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
+                      The lines you drew<span className="text-coral">.</span>
+                    </h2>
+                    <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
+                      Spendwall checks every checkout against these before any money moves.
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={openAddRuleModal}
+                    className="flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-ink bg-lime px-5 py-2.5 font-bold text-ink shadow-pop transition hover:-translate-y-0.5 hover:shadow-pop-lg"
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Add custom rule
+                  </button>
                 </div>
-              ))}
-            </div>
+                <ul className="space-y-3">
+                  {rules.map((rule, index) => (
+                    <RuleCard
+                      key={rule.id}
+                      rule={rule}
+                      index={index}
+                      onToggle={handleToggleRule}
+                      onUpdateLimit={handleUpdateLimit}
+                      onDelete={handleDeleteRule}
+                    />
+                  ))}
+                </ul>
+              </section>
 
+              <aside className="flex animate-rise flex-col gap-6 [animation-delay:200ms] lg:col-span-4">
+                <section aria-labelledby="recent-title" className="rounded-[28px] bg-white p-6 shadow-card">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h2 id="recent-title" className="font-display text-xl font-extrabold tracking-tight">Recent checks</h2>
+                    <button type="button" onClick={() => goTo('logs')} className="flex items-center gap-1 text-sm font-bold text-ink underline decoration-lime decoration-2 underline-offset-4 hover:decoration-ink">
+                      Audit trail <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <ul className="divide-y-2 divide-paper">
+                    {logs.slice(0, 4).map((log) => (
+                      <AuditRow key={log.id} log={log} compact />
+                    ))}
+                  </ul>
+                </section>
+
+                <section aria-labelledby="copilot-card-title" className="relative overflow-hidden rounded-[28px] bg-ink p-6 text-paper">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime text-ink">
+                    <Sparkles className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h2 id="copilot-card-title" className="mt-5 font-display text-2xl font-extrabold leading-tight tracking-tight">
+                    Ask your copilot anything about your rules.
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-paper/70">
+                    {'"What\'s my spending limit?" "Why was that blocked?" Plain answers, pulled from your rules and audit trail.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsChatOpen(true)}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-lime px-5 py-3 font-bold text-ink transition hover:-translate-y-0.5"
+                  >
+                    Open Copilot
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </section>
+              </aside>
+            </div>
           </div>
         )}
 
         {activeTab === 'logs' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="animate-rise space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-violet-500 dark:text-violet-400" /> Audit Trail
-                </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Every decision your AI shopping agents made, reviewed by Spendwall.
-                </p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">Audit trail</p>
+                <h1 className="mt-1 font-display text-5xl font-extrabold leading-none tracking-tight sm:text-6xl">
+                  Every call, on record<span className="text-coral">.</span>
+                </h1>
+                <p className="mt-3 max-w-xl text-muted">Every purchase Spendwall reviewed, and the decision it made.</p>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={() => { setLogs(initialLogs); setLogFilter('all'); showToast('Audit trail refreshed', 'success'); }}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border border-slate-300 dark:border-slate-700 transition flex items-center justify-center space-x-2 shrink-0"
+                className="group flex shrink-0 items-center justify-center gap-2 rounded-full border-2 border-ink bg-white px-5 py-2.5 font-bold text-ink transition hover:bg-lime"
               >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh</span>
+                <RefreshCw className="h-4 w-4 transition-transform duration-500 group-hover:rotate-180" aria-hidden="true" />
+                Refresh
               </button>
             </div>
 
-            {/* Filter tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800 w-fit overflow-x-auto">
+            <div className="no-scrollbar flex w-full gap-2 overflow-x-auto" role="tablist" aria-label="Filter by decision">
               {[
-                { key: 'all', label: 'All', count: logs.length },
-                { key: 'Blocked', label: 'Blocked', count: logs.filter(l => l.status === 'Blocked').length },
-                { key: 'Warned & Approved', label: 'Warned', count: logs.filter(l => l.status.includes('Warned')).length },
-                { key: 'Approved', label: 'Approved', count: logs.filter(l => l.status === 'Approved').length },
+                { key: 'all', label: 'All', count: logs.length, active: 'bg-ink text-paper' },
+                { key: 'Blocked', label: 'BLOCK', count: decisionCounts.BLOCK, active: 'bg-coral text-ink' },
+                { key: 'Warned & Approved', label: 'WARN', count: decisionCounts.WARN, active: 'bg-sun text-ink' },
+                { key: 'Approved', label: 'ALLOW', count: decisionCounts.ALLOW, active: 'bg-lime text-ink' },
               ].map((tab) => (
                 <button
                   key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={logFilter === tab.key}
                   onClick={() => setLogFilter(tab.key)}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap ${
-                    logFilter === tab.key
-                      ? 'bg-violet-500 text-slate-950 font-semibold shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border-2 px-4 py-2 font-display text-sm font-extrabold tracking-wide transition ${
+                    logFilter === tab.key ? `border-ink shadow-pop ${tab.active}` : 'border-ink/10 bg-white text-muted hover:border-ink/40'
                   }`}
                 >
-                  {tab.label} <span className="opacity-70">({tab.count})</span>
+                  {tab.label}
+                  <span className="tabular-nums opacity-70">{tab.count}</span>
                 </button>
               ))}
             </div>
 
-            <div className="space-y-3">
-              {logs
-                .filter((log) => logFilter === 'all' || log.status === logFilter)
-                .map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700 transition"
-                  >
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-semibold w-fit shrink-0 ${
-                      log.status === 'Blocked' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30' :
-                      log.status.includes('Warned') ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30' :
-                      'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-300 dark:border-violet-500/30'
-                    }`}>
-                      {log.status === 'Blocked' ? <XCircle className="w-3.5 h-3.5" /> :
-                       log.status.includes('Warned') ? <AlertTriangle className="w-3.5 h-3.5" /> :
-                       <CheckCircle2 className="w-3.5 h-3.5" />}
-                      {log.status}
-                    </span>
+            <ul className="space-y-3">
+              {filteredLogs.map((log) => (
+                <AuditRow key={log.id} log={log} />
+              ))}
+            </ul>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-slate-900 dark:text-white truncate">{log.item}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{log.agent} · {log.merchant}</div>
-                    </div>
-
-                    <div className="text-sm font-mono text-slate-700 dark:text-slate-200 shrink-0">{log.amount}</div>
-
-                    <div className="hidden md:block text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{log.reason}</div>
-
-                    <div className="text-xs font-mono text-slate-400 dark:text-slate-500 shrink-0 sm:ml-auto">{log.timestamp}</div>
-                  </div>
-                ))}
-
-              {logs.filter((log) => logFilter === 'all' || log.status === logFilter).length === 0 && (
-                <div className="text-center py-12 text-sm text-slate-400 dark:text-slate-500">
-                  No transactions in this category yet.
-                </div>
-              )}
-            </div>
+            {filteredLogs.length === 0 && (
+              <div className="rounded-[28px] border-2 border-dashed border-ink/20 py-16 text-center">
+                <p className="font-display text-2xl font-extrabold">Nothing here yet.</p>
+                <p className="mt-1 text-sm text-muted">No transactions in this category yet.</p>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'simulator' && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-500 dark:text-amber-400" /> Try It: See Spendwall Catch a Bad Checkout
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Pick one of the scenarios below to see exactly how Spendwall would step in before your money moved.
-              </p>
+          <div className="animate-rise space-y-8">
+            <div className="grid grid-cols-1 items-end gap-6 lg:grid-cols-12">
+              <div className="lg:col-span-8">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted">TrueCost simulator</p>
+                <h1 className="mt-1 font-display text-[clamp(3rem,7vw,5.5rem)] font-extrabold leading-[0.9] tracking-[-0.04em]">
+                  What you <span className="text-coral">see</span> vs. what you <span className="bg-lime px-2">pay</span>.
+                </h1>
+                <p className="mt-4 max-w-xl text-lg text-muted">
+                  Pick a checkout scenario and watch Spendwall compare the expected price with the real one — then make the call.
+                </p>
+              </div>
+              <a
+                href="/checkout"
+                className="group flex items-center justify-between gap-4 rounded-[28px] border-2 border-ink bg-white p-5 shadow-pop transition hover:-translate-y-0.5 hover:shadow-pop-lg lg:col-span-4"
+              >
+                <span>
+                  <span className="block font-display text-lg font-extrabold">Live checkout demo</span>
+                  <span className="block text-sm text-muted">A merchant page the extension can intercept.</span>
+                </span>
+                <ExternalLink className="h-5 w-5 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+              </a>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {mockSimulations.map((sim) => (
-                <div key={sim.id} className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-violet-400 dark:hover:border-violet-500/50 rounded-2xl p-6 flex flex-col justify-between transition group shadow-lg">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-500/20 font-semibold">
-                        {sim.violation}
-                      </span>
-                      <span className="text-xs text-sky-600 dark:text-sky-400 font-mono">{sim.mlConfidence} ML</span>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              {mockSimulations.map((sim) => {
+                const decision = decisionFromSeverity(sim.severity);
+                return (
+                  <article
+                    key={sim.id}
+                    className="group flex flex-col justify-between gap-6 rounded-[28px] border-2 border-transparent bg-white p-6 shadow-card transition duration-300 hover:-translate-y-1 hover:border-ink hover:shadow-pop-lg"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-muted">{sim.merchant}</span>
+                        <DecisionChip decision={decision} />
+                      </div>
+                      <h2 className="font-display text-2xl font-extrabold leading-tight tracking-tight">{sim.title}</h2>
+                      <p className="text-sm leading-relaxed text-muted">{sim.description}</p>
+                      <dl className="grid grid-cols-2 gap-2 rounded-2xl bg-paper p-3">
+                        <div>
+                          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">Expected</dt>
+                          <dd className="font-display text-xl font-extrabold tabular-nums">{sim.intendedPrice}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">At checkout</dt>
+                          <dd className="font-display text-sm font-extrabold leading-snug text-coral">{sim.checkoutPrice}</dd>
+                        </div>
+                      </dl>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition">{sim.title}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">{sim.description}</p>
-                    <div className="pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800/80 font-mono">
-                      <div>Merchant: <strong className="text-slate-700 dark:text-slate-200">{sim.merchant}</strong></div>
-                      <div>Intended: <span className="text-slate-600 dark:text-slate-300">{sim.intendedPrice}</span></div>
-                      <div>Checkout: <span className="text-rose-600 dark:text-rose-400 font-bold">{sim.checkoutPrice}</span></div>
-                    </div>
-                  </div>
-
-                  <div className="pt-6">
                     <button
+                      type="button"
                       onClick={() => setActiveSimulation(sim)}
-                      className="w-full py-3 px-4 bg-violet-500 hover:bg-violet-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-violet-500/20 transition flex items-center justify-center space-x-2"
+                      className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-ink bg-ink px-5 py-3 font-bold text-paper transition group-hover:bg-lime group-hover:text-ink"
                     >
-                      <ShieldAlert className="w-4 h-4" />
-                      <span>Simulate Agent Checkout</span>
+                      <Zap className="h-4 w-4" aria-hidden="true" />
+                      Run TrueCost check
                     </button>
-                  </div>
-                </div>
-              ))}
+                  </article>
+                );
+              })}
             </div>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-violet-50 dark:from-violet-950/30 via-white dark:via-slate-900 to-sky-50 dark:to-sky-950/30 border border-violet-300 dark:border-violet-500/30 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col items-start justify-between gap-4 rounded-[28px] bg-ink p-6 text-paper sm:flex-row sm:items-center sm:p-8">
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Want to trigger an instant browser extension interception?</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Simulate a high-risk dark pattern checkout scenario instantly.</p>
+                <h2 className="font-display text-2xl font-extrabold tracking-tight">Want to see an instant intercept?</h2>
+                <p className="mt-1 text-sm text-paper/70">Fire the subscription-trap scenario straight away.</p>
               </div>
               <button
+                type="button"
                 onClick={() => setActiveSimulation(mockSimulations[0])}
-                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-violet-600 dark:text-violet-400 border border-violet-400 dark:border-violet-500/30 font-bold rounded-xl transition flex items-center space-x-2 shrink-0"
+                className="flex shrink-0 items-center gap-2 rounded-full border-2 border-lime bg-lime px-5 py-3 font-bold text-ink transition hover:-translate-y-0.5"
               >
-                <Terminal className="w-4 h-4" />
-                <span>Trigger Instant Intercept</span>
+                <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+                Trigger instant intercept
               </button>
             </div>
           </div>
@@ -1050,121 +738,26 @@ export default function SpendwallApp() {
       </main>
 
       {isChatOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/30 dark:bg-slate-950/70 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full font-sans">
-            
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-500/10 border border-indigo-400 dark:border-indigo-500/30 rounded-lg text-indigo-500 dark:text-indigo-400">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-slate-900 dark:text-white font-semibold text-sm">Spendwall ML Copilot</h3>
-                  <p className="text-xs text-violet-600 dark:text-violet-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse"></span>
-                    Ready to help
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {chatMessages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex items-start gap-3 ${
-                    msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.role === 'user'
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-indigo-500 dark:text-indigo-400'
-                    }`}
-                  >
-                    {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                  </div>
-                  <div
-                    className={`max-w-[75%] rounded-2xl p-3.5 text-sm ${
-                      msg.role === 'user'
-                        ? 'bg-indigo-600 text-white rounded-tr-none'
-                        : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 rounded-tl-none'
-                    }`}
-                  >
-                    <p className="leading-relaxed">{msg.content}</p>
-                    <span
-                      className={`text-[10px] block mt-1.5 ${
-                        msg.role === 'user' ? 'text-indigo-200 text-right' : 'text-slate-500 dark:text-slate-400'
-                      }`}
-                    >
-                      {msg.timestamp}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {isTyping && (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 rounded-2xl rounded-tl-none p-3.5 text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce"></span>
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]"></span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800/50 flex gap-2 overflow-x-auto no-scrollbar">
-              <button
-                onClick={() => setChatInput('What are my active safety rules?')}
-                className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-300 dark:border-slate-700 transition"
-              >
-                🛡️ Check active rules
-              </button>
-              <button
-                onClick={() => setChatInput('Show recent blocks')}
-                className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full whitespace-nowrap border border-slate-300 dark:border-slate-700 transition"
-              >
-                📊 Recent blocks summary
-              </button>
-            </div>
-
-            <form onSubmit={handleSendChat} className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask Copilot or query ML logs..."
-                className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-              />
-              <button
-                type="submit"
-                className="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl transition flex items-center justify-center shrink-0 shadow-lg shadow-indigo-600/20"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
-
-          </div>
-        </div>
+        <CopilotDrawer
+          messages={chatMessages}
+          input={chatInput}
+          setInput={setChatInput}
+          isTyping={isTyping}
+          onSend={handleSendChat}
+          onClose={() => setIsChatOpen(false)}
+          messagesEndRef={messagesEndRef}
+        />
       )}
 
-      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500 font-mono">
-        Spendwall • The AI-Powered Safety & Audit Layer for Agentic Commerce • Hackathon Edition 2026
+      <footer className="mx-auto mt-10 max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-start justify-between gap-4 border-t-2 border-ink/10 pt-8 sm:flex-row sm:items-center">
+          <BrandMark />
+          <p className="font-display text-lg font-extrabold tracking-tight">
+            Your money. <span className="bg-lime px-1">Your rules.</span>
+          </p>
+          <p className="text-xs text-muted">Hackathon Edition 2026</p>
+        </div>
       </footer>
-
-    </div>
     </div>
   );
 }
