@@ -8,19 +8,32 @@ const { createClient } = require("@supabase/supabase-js");
 
 let darkPatternClassifier = null;
 
-natural.BayesClassifier.load(
-  __dirname + "/ml/dark-pattern-model.json",
-  null,
-  (err, classifier) => {
-    if (err) {
-      console.error("Could not load classifier:", err);
-      return;
-    }
+try {
+  if (natural?.BayesClassifier?.load) {
+    natural.BayesClassifier.load(
+      __dirname + "/ml/dark-pattern-model.json",
+      null,
+      (err, classifier) => {
+        if (err) {
+          console.error("Could not load classifier:", err);
+          return;
+        }
 
-    darkPatternClassifier = classifier;
-    console.log("Dark pattern classifier loaded");
+        darkPatternClassifier = classifier;
+        console.log("Dark pattern classifier loaded");
+      }
+    );
+  } else {
+    console.warn(
+      "BayesClassifier unavailable; backend will run without ML classifier."
+    );
   }
-);
+} catch (error) {
+  console.error(
+    "Classifier initialization failed:",
+    error
+  );
+}
 
 const app = express();
 const PORT = 8000;
