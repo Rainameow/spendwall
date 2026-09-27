@@ -1,3 +1,8 @@
+/* =====================================================
+   SPENDWALL — SHOPPING SITE OVERLAY
+   Bright editorial theme
+   ===================================================== */
+
 #spendwall-warning {
   position: fixed !important;
   inset: 0 !important;
@@ -6,38 +11,44 @@
   display: grid !important;
   place-items: center !important;
 
-  background: rgba(9, 10, 13, 0.88) !important;
-  backdrop-filter: blur(12px) !important;
+  padding: 20px !important;
+
+  background: rgba(20, 20, 16, 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 
   font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
+    Arial,
+    "Helvetica Neue",
     sans-serif !important;
 }
 
+/* MAIN CARD */
+
 .spendwall-modal {
-  width: 440px !important;
-  max-width: calc(100vw - 40px) !important;
+  position: relative !important;
 
-  padding: 38px !important;
+  width: 460px !important;
+  max-width: calc(100vw - 32px) !important;
 
-  border: 1px solid #292a31 !important;
-  border-radius: 20px !important;
+  padding: 32px !important;
 
-  background: #121318 !important;
-  color: white !important;
+  border: 3px solid #151515 !important;
+  border-radius: 22px !important;
 
-  box-shadow:
-    0 30px 100px rgba(0, 0, 0, 0.5) !important;
+  background: #f7f5ed !important;
+  color: #151515 !important;
 
-  animation: spendwallIn 0.3s ease !important;
+  box-shadow: 9px 9px 0 #151515 !important;
+
+  animation: spendwallIn 0.28s
+    cubic-bezier(0.2, 0.8, 0.2, 1) !important;
 }
 
 @keyframes spendwallIn {
   from {
     opacity: 0;
-    transform: translateY(15px) scale(0.97);
+    transform: translateY(18px) scale(0.96);
   }
 
   to {
@@ -46,112 +57,169 @@
   }
 }
 
+/* LOGO */
+
 .spendwall-logo {
-  width: 44px !important;
-  height: 44px !important;
+  width: 48px !important;
+  height: 48px !important;
 
   display: grid !important;
   place-items: center !important;
 
-  margin-bottom: 24px !important;
+  margin-bottom: 22px !important;
 
-  border-radius: 12px !important;
+  border: 2px solid #151515 !important;
+  border-radius: 13px !important;
 
-  background:
-    linear-gradient(
-      135deg,
-      #ff4778,
-      #7657e8
-    ) !important;
+  background: #c8ff3d !important;
+  color: #151515 !important;
 
-  color: white !important;
+  box-shadow: 3px 3px 0 #151515 !important;
 
-  font-size: 17px !important;
-  font-weight: 700 !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+
+  transform: rotate(-3deg) !important;
 }
+
+/* DECISION LABEL */
 
 .spendwall-badge {
   display: inline-block !important;
 
-  margin-bottom: 13px !important;
-  padding: 6px 9px !important;
+  margin-bottom: 12px !important;
+  padding: 7px 11px !important;
 
-  border-radius: 6px !important;
+  border: 2px solid #151515 !important;
+  border-radius: 999px !important;
 
-  background: rgba(255, 67, 107, 0.1) !important;
-  color: #ff5c7f !important;
+  background: #ff6f61 !important;
+  color: #151515 !important;
 
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.2px !important;
+  text-transform: uppercase !important;
+
+  box-shadow: 2px 2px 0 #151515 !important;
 }
+
+/* TITLE */
 
 .spendwall-modal h1 {
   margin: 0 0 10px !important;
 
-  color: white !important;
+  color: #151515 !important;
 
-  font-size: 25px !important;
-  line-height: 1.2 !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  line-height: 1.05 !important;
+  letter-spacing: -1.2px !important;
 }
+
+/* DESCRIPTION */
 
 .spendwall-modal > p {
-  margin: 0 0 25px !important;
+  margin: 0 0 24px !important;
 
-  color: #8e909a !important;
+  color: #57574f !important;
 
   font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.55 !important;
 }
 
+/* RULE VIOLATIONS */
+
 .spendwall-problems {
-  margin-bottom: 25px !important;
+  margin-bottom: 24px !important;
 }
 
 .spendwall-problems div {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
+  gap: 11px !important;
 
   margin-top: 9px !important;
-  padding: 12px !important;
+  padding: 12px 13px !important;
 
-  border: 1px solid #35232a !important;
-  border-radius: 9px !important;
+  border: 2px solid #151515 !important;
+  border-radius: 11px !important;
 
-  background: rgba(255, 65, 105, 0.05) !important;
-  color: #d8a0ad !important;
+  background: #ffffff !important;
+  color: #151515 !important;
+
+  box-shadow: 2px 2px 0 #151515 !important;
 
   font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
 }
 
 .spendwall-problems span {
-  width: 20px !important;
-  height: 20px !important;
+  width: 23px !important;
+  min-width: 23px !important;
+  height: 23px !important;
 
   display: grid !important;
   place-items: center !important;
 
-  border-radius: 6px !important;
+  border: 1.5px solid #151515 !important;
+  border-radius: 7px !important;
 
-  background: rgba(255, 65, 105, 0.1) !important;
-  color: #ff5377 !important;
+  background: #ff6f61 !important;
+  color: #151515 !important;
 
-  font-weight: 700 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
 }
+
+/* BUTTON */
 
 #spendwall-close {
   width: 100% !important;
 
-  padding: 12px !important;
+  padding: 13px 16px !important;
 
-  border: 0 !important;
-  border-radius: 9px !important;
+  border: 2px solid #151515 !important;
+  border-radius: 11px !important;
 
-  background: white !important;
-  color: #16171b !important;
+  background: #c8ff3d !important;
+  color: #151515 !important;
+
+  box-shadow: 3px 3px 0 #151515 !important;
 
   font-size: 12px !important;
-  font-weight: 600 !important;
+  font-weight: 900 !important;
 
   cursor: pointer !important;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease !important;
+}
+
+#spendwall-close:hover {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 1px 1px 0 #151515 !important;
+}
+
+#spendwall-close:active {
+  transform: translate(3px, 3px) !important;
+  box-shadow: none !important;
+}
+
+/* SMALL SCREENS */
+
+@media (max-width: 520px) {
+  .spendwall-modal {
+    width: 100% !important;
+    padding: 25px !important;
+    border-radius: 18px !important;
+    box-shadow: 6px 6px 0 #151515 !important;
+  }
+
+  .spendwall-modal h1 {
+    font-size: 26px !important;
+  }
 }

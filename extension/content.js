@@ -177,11 +177,7 @@ function looksLikeShoppingPage() {
 // ============================================
 
 function createBadge() {
-  if (
-    document.getElementById(
-      "spendwall-live-badge"
-    )
-  ) {
+  if (document.getElementById("spendwall-live-badge")) {
     return;
   }
 
@@ -195,65 +191,73 @@ function createBadge() {
     bottom: 22px;
     z-index: 2147483647;
 
-    background: #111216;
-    color: white;
+    background: #f7f5ed;
+    color: #151515;
 
-    border: 1px solid #30323a;
+    border: 3px solid #151515;
     border-radius: 14px;
 
-    padding: 12px 16px;
+    padding: 11px 15px;
 
     font-family:
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
+      Arial,
+      "Helvetica Neue",
       sans-serif;
 
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
 
-    box-shadow:
-      0 12px 35px rgba(0,0,0,0.28);
+    box-shadow: 5px 5px 0 #151515;
 
     cursor: pointer;
+
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
   `;
 
   badge.innerHTML = `
     <div style="
-      display:flex;
-      align-items:center;
-      gap:9px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     ">
 
-      <div style="
-        width:26px;
-        height:26px;
-        border-radius:8px;
+      <div
+        id="spendwall-live-dot"
+        style="
+          width: 12px;
+          height: 12px;
 
-        background:linear-gradient(
-          135deg,
-          #ff477e,
-          #8b5cf6
-        );
+          flex-shrink: 0;
 
-        display:flex;
-        align-items:center;
-        justify-content:center;
+          border: 2px solid #151515;
+          border-radius: 50%;
 
-        font-weight:800;
-      ">
-        S
-      </div>
+          background: #b8ff3d;
+        "
+      ></div>
 
       <div>
-        <div>Spendwall</div>
+        <div style="
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: -0.2px;
+          line-height: 1.1;
+        ">
+          Spendwall
+        </div>
 
         <div
           id="spendwall-live-status"
           style="
-            font-size:11px;
-            opacity:.7;
-            margin-top:2px;
+            margin-top: 3px;
+
+            color: #66645f;
+
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.1;
           "
         >
           Protection active
@@ -265,6 +269,16 @@ function createBadge() {
 
   document.body.appendChild(badge);
 
+  badge.addEventListener("mouseenter", () => {
+    badge.style.transform = "translate(-2px, -2px)";
+    badge.style.boxShadow = "7px 7px 0 #151515";
+  });
+
+  badge.addEventListener("mouseleave", () => {
+    badge.style.transform = "translate(0, 0)";
+    badge.style.boxShadow = "5px 5px 0 #151515";
+  });
+
   badge.addEventListener("click", () => {
     if (latestResult) {
       showSpendwallResult(latestResult);
@@ -273,7 +287,6 @@ function createBadge() {
     }
   });
 }
-
 // ============================================
 // UPDATE BADGE
 // ============================================
