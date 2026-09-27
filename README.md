@@ -1,4 +1,4 @@
-# spendwall
+# Spendwall
 A personalized AI firewall for safer agentic commerce.
 
 ### Your money. Your rules.
