@@ -518,11 +518,14 @@ app.post("/api/classify", (req, res) => {
     });
   }
 
-  if (!darkPatternClassifier) {
-    return res.status(503).json({
-      error: "still loading, try again",
-    });
-  }
+if (!darkPatternClassifier) {
+  return res.json({
+    label: "normal",
+    darkConfidence: 0,
+    classifications: [],
+    classifierAvailable: false,
+  });
+}
 
   const classifications =
     darkPatternClassifier.getClassifications(text);
