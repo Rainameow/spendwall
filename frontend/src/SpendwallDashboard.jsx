@@ -265,6 +265,24 @@ export default function SpendwallApp() {
       if (enabledRules.length === 0) return 'All your rules are paused right now, so nothing is being checked.';
       return `You have ${enabledRules.length} active ${enabledRules.length === 1 ? 'rule' : 'rules'}: ${enabledRules.map(r => r.name).join(', ')}.`;
     }
+
+    // Handle questions about purchase prices
+    const priceMatch = query.match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
+
+    if (priceMatch) {
+      const price = Number(priceMatch[1]);
+      const limit = limitRule ? limitRule.value : null;
+
+      if (limit !== null && limitRule.enabled) {
+        if (price > limit) {
+          return `That purchase is $${price.toFixed(2)}, which is over your $${limit} spending limit, so Spendwall would BLOCK it.`;
+        }
+        return `A $${price.toFixed(2)} purchase is within your $${limit} spending limit, so the price alone would not trigger a block. Spendwall would still check shipping, subscriptions, and return terms at checkout.`;
+      }
+
+      return `A $${price.toFixed(2)} purchase has no active spending limit to compare against right now, so Spendwall would still check shipping, subscriptions, and return terms at checkout.`;
+    }
+
     return 'I can explain your rules, recent decisions, or how a checkout would be judged. Try asking about subscriptions, your spending limit, or recent blocks.';
   };
 

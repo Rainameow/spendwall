@@ -389,10 +389,28 @@ function fallbackCheckoutExtraction() {
   ) {
     shipping = 0;
   } else {
-    shipping = moneyNear([
-      "shipping",
-      "delivery",
-    ]);
+    // Shipping must have an explicit price on the same line.
+    // Do not scan nearby lines because that can mistake
+    // an order total for the shipping charge.
+    for (const line of lines) {
+      const lineLower = line.toLowerCase();
+
+      if (
+        lineLower.includes("shipping") ||
+        lineLower.includes("delivery")
+      ) {
+        const match = line.match(
+          /\$\s*([0-9,]+(?:\.[0-9]{1,2})?)/
+        );
+
+        if (match) {
+          shipping = Number(
+            match[1].replace(/,/g, "")
+          );
+          break;
+        }
+      }
+    }
   }
 
   const nonRefundable =
@@ -701,8 +719,7 @@ function showSpendwallResult(
             : ""
         }
 
-        Risk score:
-        ${result.riskScore ?? "—"}/100
+        
       </p>
 
       ${

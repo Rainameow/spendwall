@@ -92,16 +92,18 @@ You are Spendwall Copilot, an AI shopping safety assistant.
 Spendwall protects users when they or AI shopping agents make purchases.
 
 The user's current rules are:
-- Block recurring subscriptions.
-- Purchases over $120 require approval.
-- Shipping must cost $15 or less.
-- Purchases must be refundable.
+- Block purchases over $120.
+- Block unexpected recurring subscriptions or recurring charges.
+- Warn when shipping costs more than the user's preferred $15 limit.
+- Warn when an item is final sale or non-refundable.
+- Unknown or unverified information is not automatically a violation.
 
 When the user talks about buying something:
 - Identify the item, merchant, and price if provided.
 - Compare what is known against the user's Spendwall rules.
-- Clearly mention any rule that could be violated.
+- Clearly distinguish between hard blocks and warnings.
 - If important information such as shipping, refundability, or subscription status is unknown, say that it still needs to be checked.
+- Do not treat unknown information as dangerous or as a rule violation.
 - Do not invent checkout information.
 - Keep your response short and conversational.
 
@@ -205,6 +207,10 @@ IMPORTANT:
 - Ignore advertisements.
 - Ignore navigation and footer content when possible.
 - Prefer checkout and order-summary information.
+- For shipping, only use an explicit shipping or delivery charge shown by the website.
+- Never use subtotal, order total, estimated total, item price, or cart total as the shipping value.
+- If the website explicitly says shipping or delivery is free, set shipping to 0.
+- If no explicit shipping or delivery charge can be verified, set shipping to null.
 - Return JSON only.
 - Do not return markdown.
 - Do not include an explanation outside the JSON.
@@ -284,93 +290,97 @@ app.post("/api/analyze-checkout", async (req, res) => {
       totalToday,
     } = req.body;
 
+    
+  
+
     const violations = [];
-    const warnings = [];
+const warnings = [];
 
-    // ========================================
-    // RULE 1: BLOCK SUBSCRIPTIONS
-    // ========================================
+// ========================================
+// RULE 1: RECURRING CHARGES = BLOCK
+// ========================================
 
-    if (subscription) {
-      violations.push(
-        `Recurring subscription detected${
-          subscriptionPrice
-            ? `: $${subscriptionPrice}/month`
-            : ""
-        }`
-      );
-    }
+if (subscription) {
+  violations.push(
+    `Recurring charge detected${
+      subscriptionPrice
+        ? `: $${Number(subscriptionPrice).toFixed(2)} recurring`
+        : ""
+    }`
+  );
+}
 
-    // ========================================
-    // RULE 2: $120 SPENDING LIMIT
-    // ========================================
+// ========================================
+// RULE 2: HARD $120 SPENDING LIMIT = BLOCK
+// ========================================
 
-    if (
-      typeof totalToday === "number" &&
-      totalToday > 120
-    ) {
-      violations.push(
-        `Total $${totalToday.toFixed(
-          2
-        )} exceeds your $120 spending limit`
-      );
-    }
+if (
+  typeof totalToday === "number" &&
+  totalToday > 120
+) {
+  violations.push(
+    `Total $${totalToday.toFixed(
+      2
+    )} exceeds your $120 spending limit`
+  );
+}
 
-    // ========================================
-    // RULE 3: $15 SHIPPING LIMIT
-    // ========================================
+// ========================================
+// RULE 3: SHIPPING = WARN, NOT BLOCK
+// ========================================
 
-    if (typeof shipping === "number") {
-      if (shipping > 15) {
-        violations.push(
-          `Shipping $${shipping.toFixed(
-            2
-          )} exceeds your $15 limit`
-        );
-      } else if (shipping >= 12) {
-        warnings.push(
-          `Shipping $${shipping.toFixed(
-            2
-          )} is close to your $15 limit`
-        );
-      }
-    }
+// Only evaluate shipping when it looks like a plausible
+// shipping charge. This prevents a cart total from being
+// mistaken for shipping and causing a false block.
+if (
+  typeof shipping === "number" &&
+  shipping >= 0 &&
+  (
+    typeof totalToday !== "number" ||
+    shipping < totalToday
+  )
+) {
+  if (shipping > 15) {
+    warnings.push(
+      `Shipping is $${shipping.toFixed(
+        2
+      )}, above your preferred $15 limit`
+    );
+  } else if (shipping >= 12) {
+    warnings.push(
+      `Shipping is $${shipping.toFixed(
+        2
+      )}, close to your preferred $15 limit`
+    );
+  }
+}
 
-    // ========================================
-    // RULE 4: MUST BE REFUNDABLE
-    // ========================================
+// ========================================
+// RULE 4: FINAL SALE = WARN, NOT BLOCK
+// ========================================
 
-    if (
-      finalSale ||
-      refundable === false
-    ) {
-      violations.push(
-        "Purchase is final sale or non-refundable"
-      );
-    }
+if (
+  finalSale ||
+  refundable === false
+) {
+  warnings.push(
+    "This item is final sale or non-refundable"
+  );
+}
 
-    // ========================================
-    // UNKNOWN INFORMATION WARNINGS
-    // ========================================
+// ========================================
+// FINAL DECISION
+// ========================================
 
-    if (refundable === null) {
-      warnings.push(
-        "Refund policy could not be verified"
-      );
-    }
+let decision = "ALLOW";
 
-    // ========================================
-    // FINAL DECISION
-    // ========================================
+if (violations.length > 0) {
+  decision = "BLOCK";
+} else if (warnings.length > 0) {
+  decision = "WARN";
+}
 
-    let decision = "ALLOW";
-
-    if (violations.length > 0) {
-      decision = "BLOCK";
-    } else if (warnings.length > 0) {
-      decision = "WARN";
-    }
-
+    
     // ========================================
     // TEMPORARY RISK SCORE
     // ========================================
