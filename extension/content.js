@@ -21,17 +21,13 @@ let approvedButton = null;
 function keywordFallback(pageText) {
   const problems = [];
 
-  if (
-    pageText.includes("subscription") ||
-    pageText.includes("monthly") ||
-    pageText.includes("recurring")
-  ) {
-    problems.push("Recurring subscription language detected");
-  }
-
+  // Only use fallback checks for explicit restrictive
+  // purchase language. Subscription status is handled
+  // by checkout extraction + the deterministic rule engine.
   if (
     pageText.includes("final sale") ||
-    pageText.includes("non-refundable")
+    pageText.includes("non-refundable") ||
+    pageText.includes("no refunds")
   ) {
     problems.push("Purchase may be non-refundable");
   }
@@ -40,8 +36,10 @@ function keywordFallback(pageText) {
 }
 
 async function classifyDarkPatterns() {
+  // Analyze the same purchase-relevant text used
+  // for checkout extraction instead of the entire webpage.
   const pageText =
-    document.body.innerText.toLowerCase();
+    getCurrentPageData().pageText.toLowerCase();
 
   const problems = [];
 
@@ -67,7 +65,13 @@ async function classifyDarkPatterns() {
 
     const data = await response.json();
 
-    if (data.label === "dark_pattern") {
+    // Only surface strong ML predictions.
+    // The normalized score is used as a model-strength
+    // signal, not as a calibrated probability.
+    if (
+      data.label === "dark_pattern" &&
+      data.darkConfidence >= 0.90
+    ) {
       problems.push(
         "Spendwall ML classifier flagged manipulative checkout language"
       );
@@ -91,11 +95,54 @@ async function classifyDarkPatterns() {
 // ============================================
 
 function getCurrentPageData() {
+  const text = document.body.innerText;
+
+  // Keep the most purchase-relevant parts of large shopping pages.
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const importantWords = [
+    "subtotal",
+    "total",
+    "shipping",
+    "delivery",
+    "checkout",
+    "order",
+    "price",
+    "return",
+    "refund",
+    "final sale",
+    "subscription",
+    "monthly",
+    "recurring",
+    "$",
+  ];
+
+  const relevantLines = lines.filter((line) =>
+    importantWords.some((word) =>
+      line.toLowerCase().includes(word)
+    )
+  );
+
+  // On cart/checkout pages, preserve more surrounding context.
+  const lowerText = text.toLowerCase();
+
+  const isCheckoutPage =
+    lowerText.includes("checkout") ||
+    lowerText.includes("order summary") ||
+    lowerText.includes("place order") ||
+    lowerText.includes("cart");
+
+  const pageText = isCheckoutPage
+    ? text.slice(0, 10000)
+    : relevantLines.slice(0, 120).join("\n").slice(0, 6000);
+
   return {
     url: window.location.href,
     title: document.title,
-    pageText:
-      document.body.innerText.slice(0, 15000),
+    pageText,
   };
 }
 
@@ -267,6 +314,111 @@ function updateBadge(
 }
 
 // ============================================
+// LOCAL CHECKOUT FALLBACK
+// Used only when AI extraction fails.
+// ============================================
+
+function fallbackCheckoutExtraction() {
+  const page = getCurrentPageData();
+  const text = page.pageText;
+  const lower = text.toLowerCase();
+
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  function moneyNear(labels) {
+    for (let i = 0; i < lines.length; i++) {
+      const lineLower = lines[i].toLowerCase();
+
+      if (!labels.some((label) =>
+        lineLower.includes(label)
+      )) {
+        continue;
+      }
+
+      // Check the label line plus nearby lines because
+      // many stores put "Total" and "$97.57" separately.
+      const nearby = lines
+        .slice(i, Math.min(i + 3, lines.length))
+        .join(" ");
+
+      const match = nearby.match(
+        /\$\s*([0-9,]+(?:\.[0-9]{1,2})?)/
+      );
+
+      if (match) {
+        return Number(
+          match[1].replace(/,/g, "")
+        );
+      }
+    }
+
+    return null;
+  }
+
+  const totalToday =
+    moneyNear([
+      "estimated price",
+      "order total",
+      "total today",
+      "grand total",
+      "estimated total",
+      "total",
+    ]);
+
+  let shipping = null;
+
+  if (
+    lower.includes("free shipping") ||
+    lower.includes("shipping free")
+  ) {
+    shipping = 0;
+  } else {
+    shipping = moneyNear([
+      "shipping",
+      "delivery",
+    ]);
+  }
+
+  const nonRefundable =
+    lower.includes("cannot be returned or exchanged") ||
+    lower.includes("non-refundable") ||
+    lower.includes("nonrefundable") ||
+    lower.includes("no refunds") ||
+    lower.includes("final sale");
+
+  const subscription =
+    lower.includes("recurring subscription") ||
+    lower.includes("auto-renew") ||
+    lower.includes("automatically renews");
+
+  let merchant;
+
+  try {
+    merchant = new URL(page.url)
+      .hostname
+      .replace(/^www\./, "");
+  } catch {
+    merchant = page.title || "Unknown merchant";
+  }
+
+  return {
+    merchant,
+    item: page.title || "Current purchase",
+    advertisedPrice: null,
+    shipping,
+    subscription,
+    subscriptionPrice: null,
+    refundable: nonRefundable ? false : null,
+    finalSale: nonRefundable,
+    totalToday,
+    extractionSource: "local-fallback",
+  };
+}
+
+// ============================================
 // AI CHECKOUT EXTRACTION
 // ============================================
 
@@ -353,8 +505,18 @@ async function analyzeCheckout(checkout) {
 // ============================================
 
 async function runSpendwallCheck() {
-  const checkout =
-    await extractCheckout();
+  let checkout;
+
+  try {
+    checkout = await extractCheckout();
+  } catch (error) {
+    console.warn(
+      "AI checkout extraction failed. Using local fallback:",
+      error
+    );
+
+    checkout = fallbackCheckoutExtraction();
+  }
 
   const [result, mlProblems] =
     await Promise.all([
@@ -372,20 +534,10 @@ async function runSpendwallCheck() {
       ...new Set(result.warnings),
     ];
 
-    // ML findings add review context.
-    // Deterministic spending-rule violations
-    // remain responsible for hard BLOCKs.
-    if (
-      result.decision === "ALLOW"
-    ) {
-      result.decision = "WARN";
-    }
-
-    result.riskScore = Math.min(
-      (result.riskScore || 0) +
-        mlProblems.length * 10,
-      100
-    );
+    // ML findings are informational only.
+    // The user's purchasing rules determine
+    // ALLOW, WARN, or BLOCK.
+    result.mlSignals = mlProblems;
   }
 
   return {
@@ -952,12 +1104,13 @@ document.addEventListener(
 function startSpendwall() {
   createBadge();
 
+  // Do not automatically send shopping pages to the AI.
+  // Spendwall performs the full check when the user
+  // actually attempts to checkout.
   if (looksLikeShoppingPage()) {
-    // Give dynamic shopping sites time
-    // to render the cart.
-    setTimeout(() => {
-      scanPage();
-    }, 1500);
+    updateBadge(
+      "Ready to protect checkout"
+    );
   } else {
     updateBadge(
       "Protection active"

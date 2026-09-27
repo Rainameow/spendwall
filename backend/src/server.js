@@ -214,7 +214,7 @@ ${trimmedPageText}
 
       model: "openai/gpt-oss-20b",
       temperature: 0,
-      max_completion_tokens: 400,
+      max_completion_tokens: 800,
 
       response_format: {
         type: "json_object",
@@ -511,10 +511,33 @@ app.post("/api/classify", (req, res) => {
     });
   }
 
+  const classifications =
+    darkPatternClassifier.getClassifications(text);
+
+  const darkScore =
+    classifications.find(
+      (result) => result.label === "dark_pattern"
+    )?.value || 0;
+
+  const normalScore =
+    classifications.find(
+      (result) => result.label === "normal"
+    )?.value || 0;
+
+  const totalScore = darkScore + normalScore;
+
+  const darkConfidence =
+    totalScore > 0
+      ? darkScore / totalScore
+      : 0;
+
   res.json({
-    label: darkPatternClassifier.classify(text),
-    classifications:
-      darkPatternClassifier.getClassifications(text),
+    label:
+      darkScore > normalScore
+        ? "dark_pattern"
+        : "normal",
+    darkConfidence,
+    classifications,
   });
 });
 
