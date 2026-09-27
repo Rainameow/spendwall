@@ -4,7 +4,7 @@ console.log("Spendwall protection active");
 // SETTINGS
 // ============================================
 
-const SPENDWALL_API = "http://localhost:8000";
+const SPENDWALL_API = "https://spendwall-umber.vercel.app";
 
 let latestCheckout = null;
 let latestResult = null;
